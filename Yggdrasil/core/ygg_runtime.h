@@ -147,9 +147,6 @@ void app_def_add_consumed_events(app_def* application_definition, short producer
 /**
  * Initialize the runtime to hold the protocols the applications need to run
  * @param ntconf The configuration of the environment
- * @param n_ygg_protos The number of yggdrasil protocols, not counting the dispatcher and the timer
- * @param n_protos The number of user defined protocols
- * @param n_apps The number of Apps
  * @return SUCCESS if successful; FAILED otherwise
  */
 int ygg_runtime_init(NetworkConfig* ntconf);
@@ -157,38 +154,29 @@ int ygg_runtime_init_static(NetworkConfig* ntconf);
 
 /**
  * Register a yggdrasil protocol in the runtime
- * @param protoID The yggdrasil protocol ID
- * @param protoFunc The yggdrasil protocol main function
- * @param protoAttr The yggdrasil protocol specific parameters
- * @param max_event_type The number of events the yggdrasil protocol has
- * @return SUCCESS if all checks out and if there is still space for yggdrasil protocols, FAILED otherwise
+ * @param proto_id The yggdrasil protocol ID
+ * @param protocol_init_function The yggdrasil protocol initialization function
+ * @param proto_args The yggdrasil protocol specific parameters
+ * @return SUCCESS if all checks out, FAILED otherwise
  */
-//int addYggProtocol(short protoID, void * (*protoFunc)(void*), void* protoAttr, int max_event_type);
-
 short registerYggProtocol(short proto_id, Proto_init protocol_init_function, void* proto_args);
 
 /**
  * Register a user defined protocol in the runtime
- * @param protoID The user defined protocol ID
- * @param protoFunc The user defined protocol main function
- * @param protoAttr The user defined protocol specific parameters
- * @param max_event_type The number of events the user defined protocol has
- * @return SUCCESS if all checks out and if there is still space for user define protocols, FAILED otherwise
+ * @param proto_id The user defined protocol ID
+ * @param protocol_init_function The user defined protocol initialization function
+ * @param proto_args The user defined protocol specific parameters
+ * @return SUCCESS if all checks out, FAILED otherwise
  */
-//int addProtocol(short protoID, void * (*protoFunc)(void*), void* protoAttr, int max_event_type);
-
 short registerProtocol(short proto_id, Proto_init protocol_init_function, void* proto_args);
 
 short pre_registerProtocol(short proto_id, Proto_init protocol_init_function, Proto_arg_parser proto_parser);
 
 /**
- * Register an application in the runtime
- * @param app_inBox The application queue
- * @param max_event_type The number of events the application has
- * @return The application ID
+ * Register an application component in the runtime
+ * @param application_definition The application component definition
+ * @return The application's event queue
  */
-//short registerApp(queue_t** app_inBox, int max_event_type);
-
 queue_t* registerApp(app_def* application_definition);
 
 /*********************************************************
@@ -196,21 +184,12 @@ queue_t* registerApp(app_def* application_definition);
  *********************************************************/
 
 /**
- * Change the dispatcher protocol main loop function (dispatcher init)
- * @param dispatcher function pointer to new dispatcher main loop
+ * Change the dispatcher protocol
+ * @param dispatcher_init_function function pointer to new dispatcher protocol
+ * @param proto_args the parameters for the new dispatcher protocol
  * @return always returns SUCCESS
  */
-//int changeDispatcherFunction(void * (*dispatcher)(void*));
-
 short overrideDispatcherProtocol(Dispatcher_init dispatcher_init_function, void* proto_args);
-
-/**
- * Update the protocol specific parameters
- * @param protoID The protocol ID
- * @param protoAttr The protocol specific parameters to be updated
- * @return SUCCESS if the protocol was registered, FAILED otherwise
- */
-//int updateProtoAttr(short protoID, void* protoAttr);
 
 /**
  * Change the queue reference of the protocol identified by protoID with the queue reference identified by myID
@@ -219,16 +198,6 @@ short overrideDispatcherProtocol(Dispatcher_init dispatcher_init_function, void*
  * @return The queue reference of protoID
  */
 queue_t* interceptProtocolQueue(short protoID, short myID);
-
-/**
- * Regist the events to which a protocol is interested
- * @param protoID The protocol ID who has the events
- * @param events A list of interested event IDs
- * @param nEvents The number of interested events
- * @param myID The protocol which is interested in the events
- * @return This operation always succeeds, if the events do not exist it will simply not register the interest
- */
-//int registInterestEvents(short protoID, short* events, int nEvents, short myID);
 
 /*********************************************************
  * Start
