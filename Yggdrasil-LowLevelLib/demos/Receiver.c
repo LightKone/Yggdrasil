@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
 	Channel ch;
 	char* type = "AdHoc"; //should be an argument
 
-	NetworkConfig* ntconf = defineNetworkConfig(type, 0, 5, 0, "ledge", (struct sock_filter*)YGG_filter);
+	NetworkConfig* ntconf = defineWirelessNetworkConfig(type, 0, 5, 0, "ledge", (struct sock_filter*)YGG_filter);
 
 	if(setupSimpleChannel(&ch, ntconf) != SUCCESS){
 		printf("Failed to setup channel for communication");
