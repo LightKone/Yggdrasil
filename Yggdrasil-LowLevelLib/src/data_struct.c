@@ -134,15 +134,31 @@ void fillMeshInformation(Mesh* mesh_info, unsigned char *ie, int ielen) {
  * NetworkConfig
  *********************************************************/
 
-NetworkConfig* defineNetworkConfig(char* type, int freq, int nscan, short mandatory, char* name, const struct sock_filter* filter){
-	NetworkConfig* ntconf = (NetworkConfig*) malloc(sizeof(struct _NetworkConfig));
+NetworkConfig* defineWirelessNetworkConfig(char* type, int freq, int nscan, short mandatory, char* name, const struct sock_filter* filter){
+	NetworkConfig* ntconf = (NetworkConfig*) malloc(sizeof(struct __NetworkConfig));
 
-	ntconf->type = nameToType(type);
-	ntconf->freq = freq;
-	ntconf->nscan = nscan;
-	ntconf->mandatoryName = mandatory;
-	ntconf->name = name;
-	ntconf->filter = filter;
+	ntconf->type = MAC;
+
+	ntconf->config.macntconf.type = nameToType(type);
+	ntconf->config.macntconf.freq = freq;
+	ntconf->config.macntconf.nscan = nscan;
+	ntconf->config.macntconf.mandatoryName = mandatory;
+	ntconf->config.macntconf.name = name;
+	ntconf->config.macntconf.filter = filter;
+
+	return ntconf;
+}
+
+NetworkConfig* defineIpNetworkConfig(const char* ip_addr, unsigned short port, connection_type connection, int max_pending_connections, int keepalive) {
+	NetworkConfig* ntconf = (NetworkConfig*) malloc(sizeof(struct __NetworkConfig));
+	ntconf->type = IP;
+	bzero(ntconf->config.ipntconf.ip.addr, 16);
+	memcpy(ntconf->config.ipntconf.ip.addr, ip_addr, strlen(ip_addr));
+
+	ntconf->config.ipntconf.ip.port = port;
+	ntconf->config.ipntconf.sock_type = connection;
+	ntconf->config.ipntconf.keepalive;
+	ntconf->config.ipntconf.max_pending_connections = max_pending_connections;
 
 	return ntconf;
 }
@@ -259,7 +275,7 @@ int createChannel(Channel* ch, char* interface) {
 	printf("Interface MTU is %d\n",ch->mtu);
 #endif
 
-	bzero(ch->ip_addr, INET_ADDRSTRLEN);
+	bzero(ch->ip.addr, INET_ADDRSTRLEN);
 
 	return 0;
 }

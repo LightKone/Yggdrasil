@@ -173,13 +173,13 @@ int set_ip_addr(Channel* ch)
 	if(ioctl(ch->sockid, SIOCGIFNAME, &ifr) == 0 && ioctl(ch->sockid, SIOCGIFADDR, &ifr) == 0){
 
 
-		if (inet_ntop(AF_INET, &((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr, ch->ip_addr, INET_ADDRSTRLEN) != NULL) {
+		if (inet_ntop(AF_INET, &((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr, ch->ip.addr, INET_ADDRSTRLEN) != NULL) {
 			return SUCCESS;
 		}
 
 	}
 
-	bzero(ch->ip_addr, INET_ADDRSTRLEN);
+	bzero(ch->ip.addr, INET_ADDRSTRLEN);
 	return FAILED;
 
 }

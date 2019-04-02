@@ -25,8 +25,8 @@
  * Setup
  *********************************************************/
 
-int setupSimpleChannel(Channel* ch, NetworkConfig* ntconf);
-int setupChannelNetwork(Channel* ch, NetworkConfig* ntconf);
+int setupSimpleChannel(Channel* ch, NetworkConfig* ntc);
+int setupChannelNetwork(Channel* ch, NetworkConfig* ntc);
 
 /*********************************************************
  * Basic I/O
@@ -66,5 +66,15 @@ int chbroadcast(Channel* ch, YggPhyMessage* message);
  * @return The number of bytes received
  */
 int chreceive(Channel* ch, YggPhyMessage* message);
+
+
+
+/*******************************************************
+ *  IP sockets
+ *******************************************************/
+
+int setupIpChannel(Channel* ch, NetworkConfig* ntc);
+
+void set_sock_opt(int sockid, Channel* ch);
 
 #endif /* YGG_LL_API_H_ */
