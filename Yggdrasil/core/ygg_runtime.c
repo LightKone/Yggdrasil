@@ -96,7 +96,12 @@ void proto_def_add_consumed_event(proto_def* protocol_definition, short producer
 		protocol_definition->consumedEvents = malloc(sizeof(int)*protocol_definition->n_consumedEvents);
 	}
 
-	protocol_definition->consumedEvents[protocol_definition->n_consumedEvents-1] = (producer_id * 100) + event;
+	if(producer_id >= 0)
+		protocol_definition->consumedEvents[protocol_definition->n_consumedEvents-1] = (producer_id * 100) + event;
+	else
+		protocol_definition->consumedEvents[protocol_definition->n_consumedEvents-1] = (producer_id * 100) + (-1 * event);
+
+
 
 }
 
@@ -227,10 +232,10 @@ void app_def_add_produced_events(app_def* application_definition, int n_events) 
 void app_def_add_consumed_events(app_def* application_definition, short producer_id, int event) {
 	application_definition->n_consumedEvents ++;
 	application_definition->consumedEvents = realloc(application_definition->consumedEvents, sizeof(int)*application_definition->n_consumedEvents);
-	if(producer_id == 0)
+	if(producer_id >= 0)
 		application_definition->consumedEvents[application_definition->n_consumedEvents-1] = (producer_id * 100) + event;
 	else
-		application_definition->consumedEvents[application_definition->n_consumedEvents-1] = (producer_id * 100) + (producer_id * event);
+		application_definition->consumedEvents[application_definition->n_consumedEvents-1] = (producer_id * 100) + (-1 * event);
 }
 
 /**********************************************************
@@ -1112,7 +1117,7 @@ static int registInterestEvents(proto* protocol) {
 		int consume = protocol->definition->consumedEvents[i];
 
 		int producer_id = consume / 100;
-		int notification_id = consume % 100;
+		int notification_id = abs(consume % 100);
 
 
 		EventList* eventList = getEventList(producer_id);
@@ -1157,8 +1162,9 @@ static int registInterestEvents(proto* protocol) {
 static int unregisterInterestEvents(proto* protocol) {
 	for(int i = 0; i < protocol->definition->n_consumedEvents; i ++) {
 		int consume = protocol->definition->consumedEvents[i];
-		int notification_id = consume % 100;
+
 		int producer_id = consume / 100;
+		int notification_id = abs(consume % 100);
 
 		EventList* eventList = getEventList(producer_id);
 
@@ -1201,8 +1207,9 @@ static int registAppInterestEvents(app* app) {
 
 	for(int i = 0; i < app->n_consumedEvents; i ++) {
 		int consume = app->consumedEvents[i];
-		int notification_id = abs(consume % 100);
+
 		int producer_id = consume / 100;
+		int notification_id = abs(consume % 100);
 
 		EventList* eventList = getEventList(producer_id);
 
@@ -1370,7 +1377,10 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 
 	setupTerminationSignalHandler();
 
-	srand(time(NULL));   // should only be called once
+	struct timespec time;
+	clock_gettime(CLOCK_REALTIME, &time);
+	//srand(time(NULL));   // should only be called once
+	srand(time.tv_nsec);   // should only be called once
 	//genUUID(myuuid); //Use this line to generate a random uuid
 	genStaticUUID(myuuid); //Use this to generate a static uuid based on the hostname
 
