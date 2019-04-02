@@ -28,7 +28,7 @@ static int get_random_destination(int number) {
 
 int main(int argc, char* argv[]) {
 
-	NetworkConfig* ntconf = defineNetworkConfig("AdHoc", 0, 5, 0, "ledge", YGG_filter);
+	NetworkConfig* ntconf = defineWirelessNetworkConfig("AdHoc", 0, 5, 0, "ledge", YGG_filter);
 
 	ygg_runtime_init(ntconf);
 

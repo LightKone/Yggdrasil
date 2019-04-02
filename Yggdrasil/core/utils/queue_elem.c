@@ -15,6 +15,13 @@ const int size_of_element_types[] = {sizeof(YggTimer), sizeof(YggEvent), sizeof(
 
 void free_elem_payload(queue_t_elem* elem) {
 	switch(elem->type) {
+	case YGG_MESSAGE:
+		if(elem->data.msg.dataLen > 0 && elem->data.msg.data != NULL) {
+			free(elem->data.msg.data);
+			elem->data.msg.dataLen = 0;
+			elem->data.msg.data = NULL;
+		}
+		break;
 	case YGG_TIMER:
 		if(elem->data.timer.length > 0  && elem->data.timer.payload != NULL) {
 			free(elem->data.timer.payload);

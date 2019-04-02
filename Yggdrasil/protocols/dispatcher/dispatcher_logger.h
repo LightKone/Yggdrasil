@@ -17,7 +17,7 @@
 #include "core/utils/queue.h"
 #include "core/ygg_runtime.h"
 #include "Yggdrasil_lowlvl.h"
-#include "core/protos/dispatcher.h"
+#include "core/protos/wireless/dispatcher.h"
 
 typedef struct _dispatcher_logger_args {
 	int log_period_s;

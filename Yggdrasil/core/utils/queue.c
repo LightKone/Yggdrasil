@@ -169,6 +169,14 @@ void queue_push(queue_t* q, queue_t_elem* elem) {
 		} else {
 			tmp->payload = NULL;
 		}
+	} else if(elem->type == YGG_MESSAGE) {
+		YggMessage* tmp = (YggMessage*)(target->data + (target->writer * target->element_size));
+		if(tmp->dataLen > 0) {
+			tmp->data = malloc(elem->data.msg.dataLen);
+			memcpy(tmp->data, elem->data.msg.data, elem->data.msg.dataLen);
+		} else {
+			tmp->data = NULL;
+		}
 	}
 
 	target->writer++;

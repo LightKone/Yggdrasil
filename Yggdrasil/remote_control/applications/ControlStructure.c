@@ -23,7 +23,7 @@
 int main(int argc, char* argv[]) {
 
 	char* type = "AdHoc"; //should be an argument
-	NetworkConfig* ntconf = defineNetworkConfig(type, 0, 5, 0, "ledge", YGG_filter);
+	NetworkConfig* ntconf = defineWirelessNetworkConfig(type, 0, 5, 0, "ledge", YGG_filter);
 
 
 	//Init ygg_runtime and protocols

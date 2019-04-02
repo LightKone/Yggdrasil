@@ -33,7 +33,7 @@ static short process_msg(YggMessage* msg, void* state) {
 #ifdef DEGUB
 		printf("New neighbour\n");
 #endif
-		neighbour_item* newnei = new_neighbour(id, msg->srcAddr, NULL, 0, NULL);
+		neighbour_item* newnei = new_neighbour(id, msg->header.src_addr.mac_addr, NULL, 0, NULL);
 		neighbour_add_to_list(discov_state->neighbours, newnei);
 
 		send_event_neighbour_up(discov_state->proto_id, newnei->id, &newnei->addr);
@@ -51,6 +51,7 @@ static short process_timer(YggTimer* timer, void* state) {
 	YggMessage_addPayload(&msg, (void*) discov_state->myid, sizeof(uuid_t));
 
 	dispatch(&msg);
+	YggMessage_freePayload(&msg);
 
 	return SUCCESS;
 }

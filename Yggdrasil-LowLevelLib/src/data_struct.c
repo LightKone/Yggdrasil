@@ -171,6 +171,7 @@ int initYggPhyMessage(YggPhyMessage *msg) {
 	char id[] = AF_YGG_ARRAY;
 	memcpy(msg->yggHeader.data, id, YGG_HEADER_LEN);
 
+	bzero(msg->data, MAX_PAYLOAD);
 	return SUCCESS;
 }
 
@@ -183,6 +184,9 @@ int initYggPhyMessageWithPayload(YggPhyMessage *msg, char* buffer, short bufferl
 	msg->phyHeader.type = IP_TYPE;
 	char id[] = AF_YGG_ARRAY;
 	memcpy(msg->yggHeader.data, id, YGG_HEADER_LEN);
+
+	bzero(msg->data, MAX_PAYLOAD);
+
 	msg->dataLen = len;
 	memcpy(msg->data, buffer, len);
 

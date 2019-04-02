@@ -21,7 +21,7 @@ int main(int argc, char* agrv[]){
 	//define a network configuration
 	//use adhoc mode, default frequency (2412), scan the network 1 time to find and connect to a network called "ledge"
 	//setup the YGG_filter in the kernel so that only receive messages tagged with YGG
-	NetworkConfig* ntconf = defineNetworkConfig("AdHoc", DEFAULT_FREQ, 1, 0, "ledge", YGG_filter);
+	NetworkConfig* ntconf = defineWirelessNetworkConfig("AdHoc", DEFAULT_FREQ, 1, 0, "ledge", YGG_filter);
 
 	//setup the runtime
 	//the runtime will always setup the dispatcher protocol (to send and receive messages to and from the network)
@@ -70,7 +70,7 @@ int main(int argc, char* agrv[]){
 				memset(m, 0, 200);
 				char addr[33]; //a mac address as 33 characters
 				memset(addr, 0, 33);
-				wlan2asc(&msg.srcAddr, addr); //auxiliary function that translates the mac address from machine to human readable form
+				wlan2asc(&msg.header.src_addr.mac_addr, addr); //auxiliary function that translates the mac address from machine to human readable form
 				sprintf(m, "Message from %s content: %s", addr, msg.data);
 				ygg_log("ONE HOP BCAST", "RECEIVED MESSAGE", m);
 

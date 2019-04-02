@@ -77,10 +77,10 @@ static bool equal_destination(destination* dest, WLANAddr* addr) {
 
 static void store_outbond(YggMessage* msg, p2p_reliable_state* state){
 	//simple store
-	destination* dest = list_find_item(state->outbound_msgs, (comparator_function) equal_destination, &msg->destAddr);
+	destination* dest = list_find_item(state->outbound_msgs, (comparator_function) equal_destination, &msg->header.dst_addr.mac_addr);
 	if(!dest) {
 		dest = malloc(sizeof(destination));
-		memcpy(dest->destination.data, msg->destAddr.data, WLAN_ADDR_LEN);
+		memcpy(dest->destination.data, msg->header.dst_addr.mac_addr.data, WLAN_ADDR_LEN);
 		dest->first = time(NULL);
 		list_add_item_to_tail(state->outbound_msgs, dest);
 		dest->msg_list = list_init();
@@ -105,11 +105,11 @@ static bool equal_sqn(pending_msg* msg, unsigned short* sqn) {
 static short store_inbond(unsigned short recv_sqn, YggMessage* msg, p2p_reliable_state* state){
 	//check if it and store it
 
-	destination* dest = list_find_item(state->inbound_msgs, (comparator_function) equal_destination, &msg->srcAddr);
+	destination* dest = list_find_item(state->inbound_msgs, (comparator_function) equal_destination, &msg->header.src_addr.mac_addr);
 
 	if(!dest) {
 		dest = malloc(sizeof(destination));
-		memcpy(dest->destination.data, msg->srcAddr.data, WLAN_ADDR_LEN);
+		memcpy(dest->destination.data, msg->header.src_addr.mac_addr.data, WLAN_ADDR_LEN);
 		dest->msg_list = list_init();
 		list_add_item_to_tail(state->inbound_msgs, dest);
 	}
@@ -141,6 +141,7 @@ static short rm_outbond(unsigned short ack_sqn, WLANAddr* addr, p2p_reliable_sta
 	pending_msg* msg = list_remove_item(dest->msg_list, (comparator_function) equal_sqn, &ack_sqn);
 
 	if(msg) {
+		YggMessage_freePayload(msg->msg);
 		free(msg->msg);
 		free(msg);
 		return OK;
@@ -167,6 +168,8 @@ static short rm_inbond(p2p_reliable_state* state){
 						dest->first = 0;
 					}
 
+					YggMessage_freePayload(torm->msg);
+					free(torm->msg);
 					free(torm);
 				} else
 					break;
@@ -222,7 +225,7 @@ static void * reliable_point2point_main_loop(main_loop_args* args){
 
 			if(elem.data.msg.Proto_id != state->proto_id){
 				//message from some protocol
-				if(memcmp(elem.data.msg.destAddr.data, state->bcastAddr.data, WLAN_ADDR_LEN) != 0){
+				if(memcmp(elem.data.msg.header.dst_addr.mac_addr.data, state->bcastAddr.data, WLAN_ADDR_LEN) != 0){
 					//only keep track of point to point messages
 					meta_info info;
 					info.sqn = state->sqn;
@@ -232,7 +235,7 @@ static void * reliable_point2point_main_loop(main_loop_args* args){
 					memcpy(buffer, &info.sqn, sizeof(unsigned short));
 					memcpy(buffer + sizeof(unsigned short), &info.type, sizeof(unsigned short));
 
-					pushPayload(&elem.data.msg,(char *) buffer, sizeof(meta_info), state->proto_id, &elem.data.msg.destAddr);
+					pushPayload(&elem.data.msg,(char *) buffer, sizeof(meta_info), state->proto_id, &elem.data.msg.header.dst_addr.mac_addr);
 
 					store_outbond(&elem.data.msg, state);
 
@@ -260,7 +263,7 @@ static void * reliable_point2point_main_loop(main_loop_args* args){
 				if(info.type == ACK){
 					//check if is ack, and rm from outbond
 
-					if(rm_outbond(info.sqn, &elem.data.msg.srcAddr, state) == PANIC){
+					if(rm_outbond(info.sqn, &elem.data.msg.header.src_addr.mac_addr, state) == PANIC){
 						ygg_log("RELIABLE POINT2POINT", "PANIC", "Tried to remove non existing out bound message");
 					}
 
@@ -270,7 +273,7 @@ static void * reliable_point2point_main_loop(main_loop_args* args){
 						deliver(&elem.data.msg);
 					}
 
-					prepareAck(&elem.data.msg, info.sqn, &elem.data.msg.srcAddr, state);
+					prepareAck(&elem.data.msg, info.sqn, &elem.data.msg.header.src_addr.mac_addr, state);
 
 					queue_push(state->dispatcher_queue, &elem);
 				}else{
@@ -303,6 +306,7 @@ static void * reliable_point2point_main_loop(main_loop_args* args){
 						}
 
 						notify_failed_delivery(m->msg, state);
+						YggMessage_freePayload(m->msg);
 						free(m->msg);
 						free(m);
 					}else if(m->time + TIME_TO_RESEND < time(NULL)){

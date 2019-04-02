@@ -308,7 +308,7 @@ static short process_msg(YggMessage* msg, batman_state* state) {
 	void* ptr = YggMessage_readPayload(msg, NULL, &type, sizeof(short));
 
 	if(type == OGM) {
-		WLANAddr* trasnmiter_addr = &msg->srcAddr;
+		WLANAddr* trasnmiter_addr = &msg->header.src_addr.mac_addr;
 		WLANAddr origin_addr;
 		uuid_t origin;
 		uuid_t trasnmiter_id;
@@ -378,16 +378,21 @@ static short process_msg(YggMessage* msg, batman_state* state) {
 			YggMessage todeliver;
 			ptr = YggMessage_readPayload(msg, ptr, &todeliver.Proto_id, sizeof(short));
 			ptr = YggMessage_readPayload(msg, ptr, &todeliver.dataLen, sizeof(unsigned short));
-			ptr = YggMessage_readPayload(msg, ptr, todeliver.data, todeliver.dataLen);
+			if(todeliver.dataLen > 0) {
+				todeliver.data = malloc(todeliver.dataLen);
+				ptr = YggMessage_readPayload(msg, ptr, todeliver.data, todeliver.dataLen);
+			}else
+				todeliver.data = NULL;
+
 			YggMessage_addPayload(&todeliver, (void*) &msg_ttl, sizeof(unsigned short));
 
 			deliver(&todeliver);
-
+			YggMessage_freePayload(&todeliver);
 		} else {
 			//no
 			neighbour_item* next_hop = find_best_next_hop(state->routing_table, destination);
 			if(next_hop != NULL && msg_ttl > 0) {
-				memcpy(msg->destAddr.data, next_hop->addr.data, WLAN_ADDR_LEN);
+				memcpy(msg->header.dst_addr.mac_addr.data, next_hop->addr.data, WLAN_ADDR_LEN);
 				*ttl_pos = *ttl_pos -1;
 				dispatch(msg);
 			}
@@ -452,6 +457,8 @@ static short process_timer(YggTimer* timer, batman_state* state) {
 		state->seq_number = (state->seq_number + 1) % SEQNO_MAX;
 
 		dispatch(&ogm);
+		YggMessage_freePayload(&ogm);
+
 	} else
 		print_routing_table(state);
 
@@ -500,6 +507,8 @@ static short process_request(YggRequest* request, batman_state* state) {
 		YggMessage_addPayload(&tosend, (char*) msg.data, msg.dataLen);
 
 		dispatch(&tosend);
+		YggMessage_freePayload(&tosend);
+		YggMessage_freePayload(&msg);
 
 		return SUCCESS;
 	}

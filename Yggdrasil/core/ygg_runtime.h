@@ -140,9 +140,11 @@ void app_def_add_consumed_events(app_def* application_definition, short producer
  * Init functions
  *********************************************************/
 
-#include "core/protos/executor.h"
-#include "core/protos/dispatcher.h"
+#include "core/protos/wireless/dispatcher.h"
+#include "core/protos/ip/simple_tcp_dispatcher.h"
+
 #include "core/protos/timer.h"
+#include "core/protos/executor.h"
 
 /**
  * Initialize the runtime to hold the protocols the applications need to run
@@ -319,5 +321,7 @@ const char* getChannelIpAddress();
 void getmyId(uuid_t id) ;
 
 WLANAddr* getBroadcastAddr();
+
+void getIpAddr(IPAddr* ip);
 
 #endif /* CORE_RUNTIME_H_ */

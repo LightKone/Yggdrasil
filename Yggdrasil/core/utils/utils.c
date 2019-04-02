@@ -214,7 +214,9 @@ void genUUID(uuid_t id){
 
 int setDestToAddr(YggMessage* msg, char* addr){
 
-	memcpy(msg->destAddr.data, addr, WLAN_ADDR_LEN);
+	if(msg->header.type != MAC)
+		return FAILED;
+	memcpy(msg->header.dst_addr.mac_addr.data, addr, WLAN_ADDR_LEN);
 	return SUCCESS;
 }
 

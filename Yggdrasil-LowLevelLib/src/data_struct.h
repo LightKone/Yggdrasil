@@ -83,7 +83,7 @@ typedef struct _YggPhyMessage{
   //Lightkone Protocol header;
   YggHeader yggHeader;
   //PayloadLen
-  unsigned short dataLen;
+  uint16_t dataLen;
   //Payload
   char data[MAX_PAYLOAD];
 } YggPhyMessage;

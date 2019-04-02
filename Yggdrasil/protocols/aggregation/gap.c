@@ -143,6 +143,7 @@ static void send_update_vector(neigh_entry* n, update_vector* v, gap_state* stat
 	addVectorToMsg(&msg, v, state);
 
 	dispatch(&msg);
+	YggMessage_freePayload(&msg);
 
 }
 
@@ -154,6 +155,7 @@ static void broadcast_update_vector(update_vector* v, gap_state* state){
 	addVectorToMsg(&msg, v, state);
 
 	dispatch(&msg);
+	YggMessage_freePayload(&msg);
 }
 
 static void process_all(gap_state* state) {
@@ -237,7 +239,7 @@ static void process_msg(YggMessage* msg, gap_state* state) {
 	update_vector other;
 	other.weight = malloc(state->val_size);
 	deserialize_vector(&other, msg, state);
-	updateentry(other.neigh, msg->srcAddr, other.weight, other.level, other.parent, state);
+	updateentry(other.neigh, msg->header.src_addr.mac_addr, other.weight, other.level, other.parent, state);
 
 	free(other.weight);
 	other.weight = NULL;

@@ -352,7 +352,7 @@ int chsend(Channel* ch, YggPhyMessage* message) {
 
 	int sent=sendto(
 			ch->sockid,
-			message, (WLAN_HEADER_LEN+YGG_HEADER_LEN+(sizeof(unsigned short))+message->dataLen), //sizeof(YggPhyMessage)
+			message, (WLAN_HEADER_LEN+YGG_HEADER_LEN+(sizeof(unsigned short))+ntohs(message->dataLen)), //sizeof(YggPhyMessage)
 			0,
 			(struct sockaddr*) &to, sizeof(to));
 

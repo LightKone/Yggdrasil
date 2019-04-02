@@ -145,7 +145,7 @@ static void process_timer(YggTimer* beacon, mirage_state* state) {
 	}
 
 	dispatch(&msg);
-
+	YggMessage_freePayload(&msg);
 	free(tosend);
 
 }

@@ -18,7 +18,7 @@
 
 int main(int argc, char* argv[]) {
 
-	NetworkConfig* ntconf = defineNetworkConfig("AdHoc", 0, 5, 0, "ledge", YGG_filter);
+	NetworkConfig* ntconf = defineWirelessNetworkConfig("AdHoc", 0, 5, 0, "ledge", YGG_filter);
 
 	ygg_runtime_init(ntconf);
 
@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
 					sleep(2); //make sure previous protocol is unregistered in the runtime (concurrency issues may arrise)
 					agg_proto = PROTO_AGG_FLOW_UPDATING_ID;
 					flow_updating_args* args = flow_updating_args_init(PROTO_FAULT_DETECTOR_DISCOVERY_ID, true, TEST_INPUT, 2, 0);
+					//TODO: start protocol receives char*
 					startProtocol(agg_proto, args);
 					flow_updating_args_destroy(args);
 				} else {
@@ -77,6 +78,7 @@ int main(int argc, char* argv[]) {
 					sleep(2); //make sure previous protocol is unregistered in the runtime (concurrency issues may arrise)
 					agg_proto = PROTO_AGG_MULTI_ROOT;
 					multi_root_agg_args* margs = multi_root_agg_args_init(PROTO_FAULT_DETECTOR_DISCOVERY_ID, true, TEST_INPUT, OP_SUM, 2, 0);
+					//TODO: start protocol receives char*
 					startProtocol(agg_proto, margs);
 					multi_root_agg_args_destroy(margs);
 				}

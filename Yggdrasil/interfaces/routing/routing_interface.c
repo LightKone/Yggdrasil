@@ -45,7 +45,12 @@ void unload_request_route_message(YggRequest* req, YggMessage* msg, uuid_t desti
 
 	void* ptr = YggRequest_readPayload(req, NULL, destination, sizeof(uuid_t));
 	ptr = YggRequest_readPayload(req, ptr, &msg->dataLen, sizeof(unsigned short));
-	YggRequest_readPayload(req, ptr, msg->data, msg->dataLen);
+	if(msg->dataLen > 0) {
+		msg->data = malloc(msg->dataLen);
+		YggRequest_readPayload(req, ptr, msg->data, msg->dataLen);
+	}else
+		msg->data = NULL;
+
 	msg->Proto_id = req->proto_origin;
 
 

@@ -75,14 +75,14 @@ static int checkTime(seen_message* m) {
 static void garbageManExecution(push_gossip_state* state) {
 	list_item* it = state->seen_msgs->head;
 	while (it != NULL && checkTime(it->data) < 0) {
-		seen_message* tmp = list_remove_head(state->pending_msgs);
+		seen_message* tmp = list_remove_head(state->seen_msgs);
 		free(tmp);
 	}
 	if (it != NULL) {
 		while (it->next != NULL) {
 			seen_message* tmp = it->next->data;
 			if (checkTime(tmp) < 0) {
-				tmp = list_remove(state->pending_msgs, it);
+				tmp = list_remove(state->seen_msgs, it);
 				free(tmp);
 			} else {
 				it = it->next;
@@ -101,6 +101,7 @@ static void dispatchPendingMessage(uuid_t msg_id, push_gossip_state* state) {
 	p_msg* pending_msg = list_remove_item(state->pending_msgs, (comparator_function) equal_pending_msg_id, msg_id);
 	if(pending_msg) {
 		dispatch(pending_msg->message);
+		YggMessage_freePayload(pending_msg->message);
 		free(pending_msg->message);
 		free(pending_msg);
 	} else {
@@ -133,6 +134,7 @@ static short processYgg_Request(YggRequest* request, push_gossip_state* state) {
 		pushPayload(&msg, (char*) mid, sizeof(uuid_t), state->proto_id, &state->bcast_addr);
 
 		dispatch(&msg);
+		YggMessage_freePayload(&msg);
 
 	} else {
 		ygg_log("PUSH_GOSSIP", "WARNING", "Got unexpected event");
@@ -221,6 +223,8 @@ static void* push_gossip_main_loop(main_loop_args* args) {
 		} else {
 			ygg_log("PUSH_GOSSIP", "WARNING", "Got something unexpected");
 		}
+
+		free_elem_payload(&elem);
 	}
 
 	return NULL;
@@ -229,6 +233,7 @@ static void* push_gossip_main_loop(main_loop_args* args) {
 static void destroy_pending_msgs(list* pending) {
 	while(pending->size > 0) {
 		p_msg* p = list_remove_head(pending);
+		YggMessage_freePayload(p->message);
 		free(p->message);
 		free(p);
 	}

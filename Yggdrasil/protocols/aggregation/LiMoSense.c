@@ -11,7 +11,7 @@
 
 #include "LiMoSense.h"
 
-static const double q = 1/24;
+static const double q = ((double)1)/24;
 
 typedef struct _estimation{
 	double val;
@@ -76,7 +76,7 @@ static void process_msg(YggMessage* msg, limosense_state* state) {
 		empty_est.sent.weight = 0;
 		empty_est.recved.val = 0;
 		empty_est.recved.weight = 0;
-		neighbour = new_neighbour(n, msg->srcAddr, &empty_est, sizeof(nei_info), NULL);
+		neighbour = new_neighbour(n, msg->header.src_addr.mac_addr, &empty_est, sizeof(nei_info), NULL);
 		neighbour_add_to_list(state->neighbours, neighbour);
 	}
 
@@ -141,6 +141,7 @@ static void process_timer(YggTimer* timer, limosense_state* state) {
 	YggMessage_addPayload(&msg, (void*)&((nei_info*)tosend->attribute)->sent.weight, sizeof(double));
 
 	dispatch(&msg);
+	YggMessage_freePayload(&msg);
 
 }
 

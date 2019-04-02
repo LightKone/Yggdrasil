@@ -213,6 +213,7 @@ static void send_discovery_msg(fdd_state* state) {
 	pushPayload(&msg.data.msg, (char*) state->myid, sizeof(uuid_t), state->proto_id, state->bcastaddr);
 
 	queue_push(state->dispatcher_queue, &msg);
+	YggMessage_freePayload(&msg.data.msg);
 }
 
 static void process_announcement(YggTimer* timer, fdd_state* state) {
@@ -279,7 +280,7 @@ static void process_up_stream_msg(YggMessage* msg, fdd_state* state) {
 	WLANAddr addr;
 
 	unsigned short read = popPayload(msg, (char*) id, sizeof(uuid_t));
-	memcpy(addr.data, msg->srcAddr.data, WLAN_ADDR_LEN);
+	memcpy(addr.data, msg->header.src_addr.mac_addr.data, WLAN_ADDR_LEN);
 
 	if(read == sizeof(uuid_t)) {
 

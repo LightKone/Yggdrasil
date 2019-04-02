@@ -142,6 +142,7 @@ static void process_timer(YggTimer* timer, flow_updating_state* state) {
 	}
 
 	dispatch(&msg);
+	YggMessage_freePayload(&msg);
 }
 
 static void process_msg(YggMessage* msg, flow_updating_state* state) {

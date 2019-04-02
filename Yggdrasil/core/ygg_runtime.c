@@ -597,8 +597,14 @@ static app* newApp() {
 }
 
 static int filter(YggMessage* msg) {
-	if(memcmp(msg->destAddr.data, ch.hwaddr.data, WLAN_ADDR_LEN) == 0 || memcmp(msg->destAddr.data, bcastAddress.data, WLAN_ADDR_LEN) == 0)
-		return 0;
+
+	if(msg->header.type == MAC) {
+		if(memcmp(msg->header.dst_addr.mac_addr.data, ch.hwaddr.data, WLAN_ADDR_LEN) == 0 || memcmp(msg->header.dst_addr.mac_addr.data, bcastAddress.data, WLAN_ADDR_LEN) == 0)
+			return 0;
+	}else if(msg->header.type == IP) {
+		if(memcmp(msg->header.dst_addr.ip.addr, ch.ip.addr, 16) == 0 && msg->header.dst_addr.ip.port == ch.ip.port)
+			return 0;
+	}
 	return 1;
 }
 
@@ -1094,9 +1100,15 @@ queue_t* registerApp(app_def* application_definition){
 	return NULL;
 }
 
-static int init_ygg_proto_info() {
+static int init_ygg_proto_info(Channel* ch) {
 
-	if(registerYggProtocol(PROTO_DISCOV, (Proto_init) &dispatcher_init, (void*) &ch) == FAILED)
+	if(ch->type == MAC) {
+		if(registerYggProtocol(PROTO_DISPATCH, (Proto_init) &dispatcher_init, (void*) ch) == FAILED)
+			return FAILED;
+	}else if(ch->type == IP) {
+		if(registerYggProtocol(PROTO_DISPATCH, (Proto_init) &simple_tcp_dispatcher_init, (void*) ch) == FAILED)
+			return FAILED;
+	} else
 		return FAILED;
 
 	if(registerYggProtocol(PROTO_TIMER, &timer_init, NULL) == FAILED)
@@ -1301,10 +1313,16 @@ int ygg_runtime_init_static(NetworkConfig* ntconf) {
 
 	ygg_loginit(); //Initialize logger
 
-	createChannel(&ch, "wlan0");
-	bindChannel(&ch);
-	set_ip_addr(&ch);
-	defineFilter(&ch, ntconf->filter);
+	if(ntconf->type == MAC) {
+		createChannel(&ch, "wlan0");
+		bindChannel(&ch);
+		set_ip_addr(&ch);
+		defineFilter(&ch, ntconf->config.macntconf.filter);
+	} else {
+		ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "This function (ygg_runtime_init_static) is not prepared to receive this network configurations");
+		ygg_logflush();
+		exit(1);
+	}
 
 	setupTerminationSignalHandler();
 
@@ -1318,7 +1336,7 @@ int ygg_runtime_init_static(NetworkConfig* ntconf) {
 	ygg_proto_info.lock = NULL;
 
 
-	if(init_ygg_proto_info() == FAILED){ //Initialize the mandatory lightkone protocols (dispatcher and timer)
+	if(init_ygg_proto_info(&ch) == FAILED){ //Initialize the mandatory lightkone protocols (dispatcher and timer)
 		ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup mandatory ygg protocols dispatcher and timer");
 		ygg_logflush();
 		exit(1);
@@ -1363,16 +1381,21 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 
 	ygg_loginit(); //Initialize logger
 
-	if(setupSimpleChannel(&ch, ntconf) != SUCCESS){ //try to configure the physical device and open a socket on it
-		ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup channel for communication");
-		ygg_logflush();
-		exit(1);
-	}
+	if(ntconf->type == MAC) {
 
-	if(setupChannelNetwork(&ch, ntconf) != SUCCESS){ //try to connect to a network which was specified in the NetworkConfig structure
-		ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup channel network for communication");
-		ygg_logflush();
-		exit(1);
+		if(setupSimpleChannel(&ch, ntconf) != SUCCESS){ //try to configure the physical device and open a socket on it
+			ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup channel for communication");
+			ygg_logflush();
+			exit(1);
+		}
+
+		if(setupChannelNetwork(&ch, ntconf) != SUCCESS){ //try to connect to a network which was specified in the NetworkConfig structure
+			ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup channel network for communication");
+			ygg_logflush();
+			exit(1);
+		}
+	} else if(ntconf->type == IP) {
+		setupIpChannel(&ch, ntconf);
 	}
 
 	setupTerminationSignalHandler();
@@ -1390,7 +1413,7 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 	ygg_proto_info.lock = NULL;
 
 
-	if(init_ygg_proto_info() == FAILED){ //Initialize the mandatory lightkone protocols (dispatcher and timer)
+	if(init_ygg_proto_info(&ch) == FAILED){ //Initialize the mandatory lightkone protocols (dispatcher and timer)
 		ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup mandatory ygg protocols dispatcher and timer");
 		ygg_logflush();
 		exit(1);
@@ -1430,13 +1453,6 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 	return SUCCESS;
 }
 
-const char* getChannelIpAddress() {
-	if(ch.ip_addr[0] == '\0')
-		set_ip_addr(&ch);
-
-	return ch.ip_addr;
-
-}
 
 int ygg_runtime_start() {
 
@@ -1949,4 +1965,18 @@ WLANAddr* getBroadcastAddr() {
 	WLANAddr* addr = malloc(sizeof(WLANAddr));
 	str2wlan((char*) addr->data, WLAN_BROADCAST);
 	return addr;
+}
+
+const char* getChannelIpAddress() {
+	if(ch.ip.addr[0] == '\0')
+		set_ip_addr(&ch);
+
+	return ch.ip.addr;
+
+}
+
+void getIpAddr(IPAddr* ip) {
+	memcpy(ip->addr, ch.ip.addr, 16);
+	ip->port = ch.ip.port;
+
 }

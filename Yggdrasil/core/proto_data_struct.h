@@ -17,18 +17,30 @@
 
 #define YGG_MESSAGE_PAYLOAD MAX_PAYLOAD -sizeof(short) -sizeof(unsigned int) //Proto_id will be serialized into phy message payload (message id)
 
+typedef union _msg_header {
+	WLANAddr mac_addr;
+	IPAddr ip;
+}msg_header_addr;
+
+typedef struct __YggMessageHeader {
+	network_type type; //MAC / IP
+	//source address (will be filled by dispatcher)
+	msg_header_addr src_addr;
+	//destination address
+	msg_header_addr dst_addr;
+
+}YggMessageHeader;
+
 // Yggdrasil message
 typedef struct _YggMessage{
-	//Mac destination;
-	WLANAddr destAddr;
-	//Mac source; (will be filled by dispatcher)
-	WLANAddr srcAddr;
+	//src, dest addresses;
+	YggMessageHeader header;
 	//Protocol id;
 	unsigned short Proto_id;
 	//PayloadLen
 	unsigned short dataLen;
 	//Payload
-	char data[YGG_MESSAGE_PAYLOAD];
+	char* data;
 } YggMessage;
 
 typedef struct timer_config_ {
@@ -73,9 +85,18 @@ typedef struct _YggRequest {
 #include "core/utils/utils.h"
 
 /**
+ * Initialize an YggMessage with an Ip destination address
+ * @param msg the message
+ * @param protoID the protocol ID that requested the initialization
+ * @param dest_addr the ip address of the destination
+ */
+void YggMessage_initIp(YggMessage* msg, short protoID, const char* dest_addr, unsigned short dest_port);
+
+
+/**
  * Initialize an YggMessage with the broadcast address
  * @param msg the message
- * @param protoID the protocol ID that requested the initializaion
+ * @param protoID the protocol ID that requested the initialization
  */
 void YggMessage_initBcast(YggMessage* msg, short protoID);
 
@@ -109,6 +130,12 @@ int YggMessage_addPayload(YggMessage* msg, char* payload, unsigned short payload
 void* YggMessage_readPayload(YggMessage* msg, void* ptr, void* buffer, unsigned short toRead);
 
 /**
+ * Frees the payload of the msg
+ * @param timer timer structure that will have its payload freed
+ */
+void YggMessage_freePayload(YggMessage* msg);
+
+/**
  * Initialize a timer with the proto origin and proto destination
  * @param timer the timer
  * @param protoOrigin the protocol who requested the timer
@@ -129,13 +156,13 @@ void YggTimer_init_with_uuid(YggTimer* timer, uuid_t uuid, short protoOrigin, sh
  * Set a timer to fire in firstNotification microseconds, and the repeat interval in microseconds
  * @param timer the timer
  * @param firstNotification_ms the time in microseconds until the timer fires for the first time
- * @param repeat_ms the repeat interval in microseconds or 0 if no repeat is neaded
+ * @param repeat_ms the repeat interval in microseconds or 0 if no repeat is needed
  */
 void YggTimer_set(YggTimer* timer, time_t firstNotication, unsigned long firstNotification_ns, time_t repeat, unsigned long repeat_ns);
 
 
 /**
- * Sets the type of timer on the timer structure, to distinguish timers in a procotol
+ * Sets the type of timer on the timer structure, to distinguish timers in a protocol
  * @param timer timer structure to be set
  * @param type codification of the type of timer
  */
@@ -143,10 +170,10 @@ void YggTimer_setType(YggTimer* timer, short type);
 
 /**
  * Sets the payload of a timer to be exactly the given one.
- * This fucntion first frees the previous payload if existed, and mallocs the new one.
+ * This function first frees the previous payload if existed, and mallocs the new one.
  * @param timer the timer structure to be set
  * @param payload the payload to be set
- * @param payloadLen the payload's lenght
+ * @param payloadLen the payload's length
  */
 void YggTimer_setPayload(YggTimer* timer, void* payload, unsigned short payloadLen);
 
@@ -155,7 +182,7 @@ void YggTimer_setPayload(YggTimer* timer, void* payload, unsigned short payloadL
  * This functions reallocs the paylaod of the timer in case more space is needed.
  * @param timer the timer structure
  * @param payload the paylaod to be added
- * @param payloadLen the payload's lenght
+ * @param payloadLen the payload's length
  */
 void YggTimer_addPayload(YggTimer* timer, void* payload, unsigned short payloadLen);
 
@@ -178,7 +205,7 @@ void* YggTimer_readPayload(YggTimer* timer, void* ptr, void* buffer, unsigned sh
 void YggTimer_freePayload(YggTimer* timer);
 
 /**
- * Initializes an event structure with the paramenters given
+ * Initializes an event structure with the parameters given
  * The payload is set to NULL
  * @param ev the event structure to be initialized
  * @param protoOrigin the protocol generating the event
@@ -247,7 +274,7 @@ void* YggRequest_readPayload(YggRequest* req, void* ptr, void* buffer, unsigned 
 
 /**
  * Frees the payload of the request structure
- * @param req the request structure that will have its paylaod freed
+ * @param req the request structure that will have its payload freed
  */
 void YggRequest_freePayload(YggRequest* req);
 
@@ -255,7 +282,7 @@ void YggRequest_freePayload(YggRequest* req);
  * Serializes the message content and headers of a message to the payload with the new payload and updates the headers
  * @param msg The original message
  * @param buffer The new content
- * @param len The lenght of the new content
+ * @param len The length of the new content
  * @param protoID The protocol Id who requested the operation
  * @param newDest The new destination of the message
  * @return SUCCESS if the serialization concluded, FALSE if the new payload size if bigger than the constant MAX_PAYLOAD

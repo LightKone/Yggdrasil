@@ -110,9 +110,11 @@ static int serializeYggMessage(YggMessage* msg, char* buffer) {
 
 	char* tmp = buffer;
 
-	memcpy(tmp, &msg->Proto_id, sizeof(short));
-	len += sizeof(short);
-	tmp += sizeof(short);
+	uint16_t proto_id = htons(msg->Proto_id);
+
+	memcpy(tmp, &proto_id, sizeof(uint16_t));
+	len += sizeof(uint16_t);
+	tmp += sizeof(uint16_t);
 
 	memcpy(tmp, msg->data, msg->dataLen);
 	len += msg->dataLen;
@@ -122,13 +124,17 @@ static int serializeYggMessage(YggMessage* msg, char* buffer) {
 
 static void deserializeYggMessage(YggMessage* msg, char* buffer, short bufferlen) {
 
-	short total = bufferlen;
+	unsigned short total = ntohs(bufferlen);
 	char* tmp = buffer;
 
-	memcpy(&msg->Proto_id, tmp, sizeof(short));
-	total -= sizeof(short);
-	tmp += sizeof(short);
+	uint16_t proto_id;
 
+	memcpy(&proto_id, tmp, sizeof(uint16_t));
+	msg->Proto_id = ntohs(proto_id);
+	total -= sizeof(uint16_t);
+	tmp += sizeof(uint16_t);
+
+	msg->data = malloc(total);
 	memcpy(msg->data, tmp, total);
 	msg->dataLen = total;
 
@@ -138,9 +144,10 @@ static void* dispatcher_receiver(void* args) {
 
 	dispatcher_state* state = (dispatcher_state*) args;
 
-	YggPhyMessage phymsg;
-	YggMessage msg;
-	while(1){
+	while(1) {
+		YggPhyMessage phymsg;
+		YggMessage msg;
+
 		while(chreceive(state->channel, &phymsg) == CHANNEL_RECV_ERROR);
 
 		if(ignore(phymsg.phyHeader.srcAddr, state->ig_lst, state->ig_list_lock) == IGNORE)
@@ -148,17 +155,18 @@ static void* dispatcher_receiver(void* args) {
 
 		deserializeYggMessage(&msg, phymsg.data, phymsg.dataLen);
 
-		msg.destAddr = phymsg.phyHeader.destAddr;
-		msg.srcAddr = phymsg.phyHeader.srcAddr;
+		msg.header.dst_addr.mac_addr = phymsg.phyHeader.destAddr;
+		msg.header.src_addr.mac_addr = phymsg.phyHeader.srcAddr;
 #ifdef DEBUG
 		char s[2000];
 		char addr[33];
 		memset(addr, 0, 33);
 		memset(s, 0, 2000);
-		sprintf(s, "Delivering msg from %s to proto %d", wlan2asc(&msg.srcAddr, addr), msg.Proto_id);
+		sprintf(s, "Delivering msg from %s to proto %d", wlan2asc(&msg.header.src_addr.mac_addr, addr), msg.Proto_id);
 		ygg_log("DISPACTHER-RECEIVER", "ALIVE",s);
 #endif
 		deliver(&msg);
+		YggMessage_freePayload(&msg);
 	}
 	return NULL;
 }
@@ -202,18 +210,24 @@ static void* dispatcher_main_loop(main_loop_args* args) {
 
 	pthread_create(state->receiver, &patribute, &dispatcher_receiver, (void*) state);
 
-	queue_t_elem elem;
-	while(1){
 
+	while(1){
+		queue_t_elem elem;
 		queue_pop(inBox, &elem);
 		if(elem.type == YGG_MESSAGE){
+
+			if(elem.data.msg.header.type != MAC) {
+				ygg_log("DISPATCHER", "UNSUPORTED", "This dispatcher does not support ip messages");
+				free_elem_payload(&elem);
+				continue;
+			}
 
 			YggPhyMessage phymsg;
 			initYggPhyMessage(&phymsg);
 			int len = serializeYggMessage(&elem.data.msg, phymsg.data);
-			phymsg.dataLen = len;
+			phymsg.dataLen = ntohs(len);
 
-			while(chsendTo(state->channel, &phymsg, (char*) elem.data.msg.destAddr.data) == CHANNEL_SENT_ERROR);
+			while(chsendTo(state->channel, &phymsg, (char*) elem.data.msg.header.dst_addr.mac_addr.data) == CHANNEL_SENT_ERROR);
 #ifdef DEBUG
 			char s[200];
 			memset(s, 0, 200);
@@ -221,6 +235,7 @@ static void* dispatcher_main_loop(main_loop_args* args) {
 			ygg_log("DISPACTHER-SENDER", "ALIVE",s);
 #endif
 
+			free_elem_payload(&elem);
 		} else if(elem.type == YGG_REQUEST){
 			YggRequest req = elem.data.request;
 			if(req.proto_dest == PROTO_DISPATCH && req.request == REQUEST && req.request_type == DISPATCH_IGNORE_REQ){

@@ -27,8 +27,11 @@
 #include "core/proto_data_struct.h"
 #include "Yggdrasil_lowlvl.h"
 
-typedef void (*destroy_function)(void*);
 typedef enum {false, true} bool;
+
+typedef void (*destroy_function)(void*);
+typedef bool (*equal_function)(void*, void*);
+typedef int (*compare_function)(void*, void*);
 
 #define min(x,y) (((x) < (y))? (x) : (y))
 #define max(x,y) (((x) > (y))? (x) : (y))
