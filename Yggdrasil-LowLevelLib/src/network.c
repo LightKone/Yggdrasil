@@ -157,7 +157,7 @@ int connectToAdHoc(Interface* itf, Network* net) {
 
 	genlmsg_put(msg, 0, 0, driver_id, 0, 0, NL80211_CMD_JOIN_IBSS, 0);
 	nla_put_u32(msg, NL80211_ATTR_IFINDEX, itf->id);
-	nla_put(msg, NL80211_ATTR_SSID, strlen(net->ssid)+1, net->ssid);
+	nla_put(msg, NL80211_ATTR_SSID, strlen(net->ssid), net->ssid);
 	nla_put_u32(msg, NL80211_ATTR_WIPHY_FREQ, net->freq);
 
 	int ret = nl_send_auto(socket, msg);
