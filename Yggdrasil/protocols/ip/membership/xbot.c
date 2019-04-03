@@ -707,9 +707,12 @@ static void send_shuffle_reply(xbot_state* state, peer* dest, peer* self, unsign
 
 //new time to leave must have been evaluated and changed accordingly before call
 static void forward_shuffle(YggMessage* shuffle_msg, peer* dest) {
-
-	printf("Forwarding shuffle to %s  %d\n", dest->ip.addr, dest->ip.port);
-
+#ifdef DEBUG
+	char debug_msg[100];
+	bzero(debug_msg, 100);
+	sprintf(debug_msg, "forwarding shuffle to %s  %d", dest->ip.addr,  dest->ip.port);
+	ygg_log("XBOT", "DEBUG", debug_msg);
+#endif
 	memcpy(shuffle_msg->header.dst_addr.ip.addr, dest->ip.addr, 16);
 	shuffle_msg->header.dst_addr.ip.port = dest->ip.port;
 	dispatch(shuffle_msg);
