@@ -212,7 +212,7 @@ static void deserialize_vector(update_vector* other, YggMessage* msg, gap_state*
 
 static void updateentry(uuid_t n, WLANAddr addr, void* w, int l, uuid_t p, gap_state* state){
 
-	neigh_entry* entry = list_find_item(state->neighbours, (comparator_function) equal_entry_id, n);
+	neigh_entry* entry = list_find_item(state->neighbours, (equal_function) equal_entry_id, n);
 	if(entry == NULL){
 		entry = malloc(sizeof(neigh_entry));
 		memcpy(entry->neigh_addr.data, addr.data, WLAN_ADDR_LEN);
@@ -260,7 +260,7 @@ static void process_event(YggEvent* event, gap_state* state) {
 			//process (fail, n)
 			uuid_t torm;
 			YggEvent_readPayload(event, NULL, torm, sizeof(uuid_t));
-			neigh_entry* entry = list_remove_item(state->neighbours, (comparator_function) equal_entry_id, torm);
+			neigh_entry* entry = list_remove_item(state->neighbours, (equal_function) equal_entry_id, torm);
 			destroy_neighbour(entry);
 			free(entry);
 
@@ -269,7 +269,7 @@ static void process_event(YggEvent* event, gap_state* state) {
 			neigh_entry* entry = malloc(sizeof(neigh_entry));
 
 			void* ptr = YggEvent_readPayload(event, NULL, entry->neigh_id, sizeof(uuid_t));
-			if(!list_find_item(state->neighbours, (comparator_function) equal_entry_id, entry->neigh_id)) {
+			if(!list_find_item(state->neighbours, (equal_function) equal_entry_id, entry->neigh_id)) {
 				YggEvent_readPayload(event, ptr, entry->neigh_addr.data, WLAN_ADDR_LEN);
 				list_add_item_to_head(state->neighbours, entry);
 				entry->level = DEFAULT_LEVEL;

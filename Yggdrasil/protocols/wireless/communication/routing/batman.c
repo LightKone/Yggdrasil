@@ -66,7 +66,7 @@ static bool equal_ref(stats* hop, neighbour_item* tofind) {
 }
 
 static stats* find_hop(list* hops, neighbour_item* hop) {
-	return list_find_item(hops, (comparator_function) equal_ref, hop);
+	return list_find_item(hops, (equal_function) equal_ref, hop);
 }
 
 static neighbour_item* set_best_hop(originator_entry* origin) {
@@ -95,7 +95,7 @@ static neighbour_item* set_best_hop(originator_entry* origin) {
 
 static neighbour_item* find_best_next_hop(list* routing_table, uuid_t node_id) {
 
-	originator_entry* entry = list_find_item(routing_table, (comparator_function) equal_entry_id, node_id);
+	originator_entry* entry = list_find_item(routing_table, (equal_function) equal_entry_id, node_id);
 	if(entry)
 		return entry->best_hop;
 
@@ -248,7 +248,7 @@ static int is_best_hop(originator_entry* origin, neighbour_item* trasnmiter) {
 
 static int update_origin_stats(batman_state* state, uuid_t origin, WLANAddr* origin_addr, neighbour_item* trasnmiter, unsigned short omg_ttl, unsigned int omg_seq_number) {
 
-	originator_entry* entry = list_find_item(state->routing_table, (comparator_function) equal_entry_id, origin);
+	originator_entry* entry = list_find_item(state->routing_table, (equal_function) equal_entry_id, origin);
 
 	int retrasmit = 0;
 

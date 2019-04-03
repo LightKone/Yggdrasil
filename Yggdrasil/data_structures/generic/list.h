@@ -26,8 +26,6 @@ typedef struct _list {
 	list_item* tail;
 }list;
 
-typedef bool (*comparator_function)(void*, void*);
-
 list* list_init();
 
 void list_add_item_to_head(list* l, void* item);
@@ -36,9 +34,9 @@ void list_add_item_to_tail(list* l, void* item);
 
 void* list_remove(list* l, list_item* previous);
 
-void* list_remove_item(list* l, comparator_function equal, void* to_remove);
+void* list_remove_item(list* l, equal_function equal, void* to_remove);
 
-void* list_find_item(list* l, comparator_function equal, void* to_find);
+void* list_find_item(list* l, equal_function equal, void* to_find);
 
 void* list_remove_head(list* l);
 

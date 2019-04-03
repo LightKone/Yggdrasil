@@ -69,7 +69,7 @@ void* list_remove(list* l, list_item* previous) {
 	return data_torm;
 }
 
-void* list_remove_item(list* l, comparator_function equal, void* to_remove) {
+void* list_remove_item(list* l, equal_function equal, void* to_remove) {
 	list_item* it = l->head;
 	void* data_torm = NULL;
 
@@ -98,7 +98,7 @@ void* list_remove_item(list* l, comparator_function equal, void* to_remove) {
 	return data_torm;
 }
 
-void* list_find_item(list* l, comparator_function equal, void* to_find) {
+void* list_find_item(list* l, equal_function equal, void* to_find) {
 	list_item* it = l->head;
 	void* data_item = NULL;
 	while(it != NULL) {

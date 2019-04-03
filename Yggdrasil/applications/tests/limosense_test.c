@@ -11,8 +11,9 @@
 
 #include "Yggdrasil_lowlvl.h"
 #include "core/ygg_runtime.h"
-#include "protocols/discovery/fault_detector_discovery.h"
-#include "protocols/aggregation/LiMoSense.h"
+#include "protocols/wireless/discovery/fault_detector_discovery.h"
+#include "protocols/wireless/aggregation/LiMoSense.h"
+
 #include "interfaces/aggregation/aggregation_operations.h"
 
 int main(int argc, char* argv[]) {

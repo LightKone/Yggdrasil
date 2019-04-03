@@ -49,7 +49,7 @@ static bool equal_seen_msg_id(seen_message* msg, uuid_t id) {
 }
 
 static bool haveIseenThis(uuid_t uuid,  push_gossip_state* state) {
-	return list_find_item(state->seen_msgs, (comparator_function) equal_seen_msg_id, uuid) != NULL;
+	return list_find_item(state->seen_msgs, (equal_function) equal_seen_msg_id, uuid) != NULL;
 }
 
 static void addMessage(uuid_t uuid, push_gossip_state* state) {
@@ -98,7 +98,7 @@ static bool equal_pending_msg_id(p_msg* msg, uuid_t id) {
 
 static void dispatchPendingMessage(uuid_t msg_id, push_gossip_state* state) {
 
-	p_msg* pending_msg = list_remove_item(state->pending_msgs, (comparator_function) equal_pending_msg_id, msg_id);
+	p_msg* pending_msg = list_remove_item(state->pending_msgs, (equal_function) equal_pending_msg_id, msg_id);
 	if(pending_msg) {
 		dispatch(pending_msg->message);
 		YggMessage_freePayload(pending_msg->message);

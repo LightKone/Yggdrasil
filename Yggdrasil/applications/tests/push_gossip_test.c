@@ -11,8 +11,8 @@
 
 #include "Yggdrasil_lowlvl.h"
 #include "core/ygg_runtime.h"
-#include "protocols/communication/broadcast/push_gossip.h"
-#include "protocols/utility/topologyManager.h"
+#include "protocols/wireless/communication/broadcast/push_gossip.h"
+#include "protocols/wireless/utility/topologyManager.h"
 
 
 int main(int argc, char* argv[]) {

@@ -11,7 +11,7 @@
 
 #include "Yggdrasil_lowlvl.h"
 #include "core/ygg_runtime.h"
-#include "protocols/discovery/simple_discovery.h"
+#include "protocols/wireless/discovery/simple_discovery.h"
 
 
 int main(int argc, char* argv[]) {

@@ -17,7 +17,7 @@
 #include "remote_control/protocols/control_command_tcp_tree.h"
 #include "remote_control/protocols/control_discovery.h"
 #include "remote_control/protocols/control_protocol_server.h"
-#include "protocols/utility/topologyManager.h"
+#include "protocols/wireless/utility/topologyManager.h"
 
 
 int main(int argc, char* argv[]) {

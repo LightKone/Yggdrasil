@@ -11,9 +11,10 @@
 
 #include "Yggdrasil_lowlvl.h"
 #include "core/ygg_runtime.h"
-#include "protocols/discovery/fault_detector_discovery.h"
-#include "protocols/aggregation/MiRAge.h"
-#include "protocols/aggregation/flow_updating.h"
+#include "protocols/wireless/discovery/fault_detector_discovery.h"
+#include "protocols/wireless/aggregation/MiRAge.h"
+#include "protocols/wireless/aggregation/flow_updating.h"
+
 #include "interfaces/aggregation/aggregation_operations.h"
 
 int main(int argc, char* argv[]) {

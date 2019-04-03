@@ -471,7 +471,7 @@ static void* simple_tcp_dispatcher_main_loop(main_loop_args* args) {
 }
 
 
-static int destroy(simple_tcp_dispatcher_state* state) {
+static short destroy(simple_tcp_dispatcher_state* state) {
 
 	if(state->receiver) {
 		pthread_cancel(*state->receiver);
@@ -479,6 +479,8 @@ static int destroy(simple_tcp_dispatcher_state* state) {
 	}
 	//at the end
 	free(state);
+
+	return SUCCESS;
 }
 
 proto_def* simple_tcp_dispatcher_init(Channel* ch, void* args) {

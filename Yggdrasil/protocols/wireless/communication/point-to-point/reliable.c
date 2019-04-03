@@ -77,7 +77,7 @@ static bool equal_destination(destination* dest, WLANAddr* addr) {
 
 static void store_outbond(YggMessage* msg, p2p_reliable_state* state){
 	//simple store
-	destination* dest = list_find_item(state->outbound_msgs, (comparator_function) equal_destination, &msg->header.dst_addr.mac_addr);
+	destination* dest = list_find_item(state->outbound_msgs, (equal_function) equal_destination, &msg->header.dst_addr.mac_addr);
 	if(!dest) {
 		dest = malloc(sizeof(destination));
 		memcpy(dest->destination.data, msg->header.dst_addr.mac_addr.data, WLAN_ADDR_LEN);
@@ -105,7 +105,7 @@ static bool equal_sqn(pending_msg* msg, unsigned short* sqn) {
 static short store_inbond(unsigned short recv_sqn, YggMessage* msg, p2p_reliable_state* state){
 	//check if it and store it
 
-	destination* dest = list_find_item(state->inbound_msgs, (comparator_function) equal_destination, &msg->header.src_addr.mac_addr);
+	destination* dest = list_find_item(state->inbound_msgs, (equal_function) equal_destination, &msg->header.src_addr.mac_addr);
 
 	if(!dest) {
 		dest = malloc(sizeof(destination));
@@ -114,7 +114,7 @@ static short store_inbond(unsigned short recv_sqn, YggMessage* msg, p2p_reliable
 		list_add_item_to_tail(state->inbound_msgs, dest);
 	}
 
-	pending_msg* m = list_find_item(dest->msg_list, (comparator_function) equal_sqn, &recv_sqn);
+	pending_msg* m = list_find_item(dest->msg_list, (equal_function) equal_sqn, &recv_sqn);
 	if(m){
 		return DUPLICATE;
 	}else {
@@ -132,13 +132,13 @@ static short store_inbond(unsigned short recv_sqn, YggMessage* msg, p2p_reliable
 
 static short rm_outbond(unsigned short ack_sqn, WLANAddr* addr, p2p_reliable_state* state){
 
-	destination* dest = list_find_item(state->outbound_msgs, (comparator_function) equal_destination, addr);
+	destination* dest = list_find_item(state->outbound_msgs, (equal_function) equal_destination, addr);
 
 	if(dest == NULL || dest->msg_list->size == 0){
 		return PANIC;
 	}
 
-	pending_msg* msg = list_remove_item(dest->msg_list, (comparator_function) equal_sqn, &ack_sqn);
+	pending_msg* msg = list_remove_item(dest->msg_list, (equal_function) equal_sqn, &ack_sqn);
 
 	if(msg) {
 		YggMessage_freePayload(msg->msg);

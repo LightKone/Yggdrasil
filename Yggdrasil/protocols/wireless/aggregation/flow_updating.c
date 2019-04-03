@@ -71,7 +71,7 @@ static void process_event(YggEvent* event, flow_updating_state* state) {
 			new_flow->estimation = 0;
 			YggEvent_readPayload(event, NULL, new_flow->neighbour_id, sizeof(uuid_t));
 
-			if(!list_find_item(state->flows, (comparator_function) equal_flow_id, new_flow->neighbour_id))
+			if(!list_find_item(state->flows, (equal_function) equal_flow_id, new_flow->neighbour_id))
 				list_add_item_to_head(state->flows, new_flow);
 			else
 				free(new_flow);
@@ -81,7 +81,7 @@ static void process_event(YggEvent* event, flow_updating_state* state) {
 			uuid_t torm;
 			YggEvent_readPayload(event, NULL, torm, sizeof(uuid_t));
 
-			flow_info* info = list_remove_item(state->flows, (comparator_function) equal_flow_id, torm);
+			flow_info* info = list_remove_item(state->flows, (equal_function) equal_flow_id, torm);
 			free(info);
 
 		}else{
@@ -151,7 +151,7 @@ static void process_msg(YggMessage* msg, flow_updating_state* state) {
 	void* ptr = YggMessage_readPayload(msg, NULL, sender_id, sizeof(uuid_t));
 	ptr = YggMessage_readPayload(msg, ptr, &sender_estimation, sizeof(double));
 
-	flow_info* info = list_find_item(state->flows, (comparator_function) equal_flow_id, sender_id);
+	flow_info* info = list_find_item(state->flows, (equal_function) equal_flow_id, sender_id);
 
 	if(info == NULL){
 		info = malloc(sizeof(flow_info));

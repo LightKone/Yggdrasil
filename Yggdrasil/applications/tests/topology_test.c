@@ -11,9 +11,9 @@
 
 #include "Yggdrasil_lowlvl.h"
 #include "core/ygg_runtime.h"
-#include "protocols/discovery/simple_discovery.h"
+#include "protocols/wireless/discovery/simple_discovery.h"
 
-#include "protocols/utility/topologyManager.h"
+#include "protocols/wireless/utility/topologyManager.h"
 
 
 int main(int argc, char* argv[]) {

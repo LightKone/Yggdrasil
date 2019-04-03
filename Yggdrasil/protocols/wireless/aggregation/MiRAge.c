@@ -171,7 +171,7 @@ static bool equal_tree_id(tree_info* info, uuid_t id) {
 
 static void update_entry(uuid_t nei_id, uuid_t nei_tree, unsigned short nei_lvl, void* nei_val, mirage_state* state){
 
-	neighbour_info* nei = list_find_item(state->neighbours, (comparator_function) equal_neighbour_id, nei_id);
+	neighbour_info* nei = list_find_item(state->neighbours, (equal_function) equal_neighbour_id, nei_id);
 	if(nei == NULL){
 		nei = create_neighbour(nei_id, nei_tree, nei_lvl, nei_val);
 		list_add_item_to_head(state->neighbours, nei);
@@ -188,7 +188,7 @@ static void update_tree(uuid_t nei_tree, time_t nei_time, unsigned short nei_lvl
 
 	int treediff = uuid_compare(nei_tree, state->my_tree->tree);
 
-	neighbour_info* nei = list_find_item(state->neighbours, (comparator_function) equal_neighbour_id, nei_id);
+	neighbour_info* nei = list_find_item(state->neighbours, (equal_function) equal_neighbour_id, nei_id);
 	if(nei == NULL){
 		nei = create_neighbour(nei_id, nei_tree, nei_lvl, nei_val);
 		list_add_item_to_head(state->neighbours, nei);
@@ -215,7 +215,7 @@ static void update_tree(uuid_t nei_tree, time_t nei_time, unsigned short nei_lvl
 			}
 		}else{ //deal with cases when nei things i am his parent and I think he is my parent
 			//force reconvergence
-			state->my_tree = list_find_item(state->trees_seen, (comparator_function) equal_tree_id, state->self->id);
+			state->my_tree = list_find_item(state->trees_seen, (equal_function) equal_tree_id, state->self->id);
 			if(state->my_tree == NULL){
 				state->my_tree = create_tree(state->self->id, time(NULL));
 				list_add_item_to_head(state->trees_seen, state->my_tree);
@@ -235,7 +235,7 @@ static void update_tree(uuid_t nei_tree, time_t nei_time, unsigned short nei_lvl
 			//we are not in the same tree, what is the correct tree?
 			//my parent should be correct
 			if(uuid_compare(nei_tree, state->self->id) < 0){
-				state->my_tree = list_find_item(state->trees_seen, (comparator_function) equal_tree_id, nei_tree);
+				state->my_tree = list_find_item(state->trees_seen, (equal_function) equal_tree_id, nei_tree);
 				if(state->my_tree == NULL){
 					state->my_tree = create_tree(nei_tree, nei_time);
 					list_add_item_to_head(state->trees_seen, state->my_tree);
@@ -245,7 +245,7 @@ static void update_tree(uuid_t nei_tree, time_t nei_time, unsigned short nei_lvl
 				state->self->level = state->parent->level + 1;
 
 			}else{
-				state->my_tree = list_find_item(state->trees_seen, (comparator_function) equal_tree_id, state->self->id);
+				state->my_tree = list_find_item(state->trees_seen, (equal_function) equal_tree_id, state->self->id);
 				if(state->my_tree == NULL){
 					state->my_tree = create_tree(state->self->id, time(NULL));
 					list_add_item_to_head(state->trees_seen, state->my_tree);
@@ -260,7 +260,7 @@ static void update_tree(uuid_t nei_tree, time_t nei_time, unsigned short nei_lvl
 		if(treediff >= 0)
 			nei->status = PASSIVE;
 		else if(treediff < 0){
-			tree_info* tree = list_find_item(state->trees_seen, (comparator_function) equal_tree_id, nei_tree);
+			tree_info* tree = list_find_item(state->trees_seen, (equal_function) equal_tree_id, nei_tree);
 			if(tree == NULL){
 				state->my_tree = create_tree(nei_tree, nei_time);
 				list_add_item_to_head(state->trees_seen, state->my_tree);
@@ -354,7 +354,7 @@ static void destroy_neighbour(neighbour_info* neighbour) {
 
 static void process_neighbour_down(uuid_t torm, mirage_state* state) {
 
-	neighbour_info* neighbour = list_remove_item(state->neighbours, (comparator_function) equal_neighbour_id, torm);
+	neighbour_info* neighbour = list_remove_item(state->neighbours, (equal_function) equal_neighbour_id, torm);
 	if(state->parent == neighbour){
 		list_item* it = state->neighbours->head;
 		neighbour_info* candidate = state->self;
@@ -371,7 +371,7 @@ static void process_neighbour_down(uuid_t torm, mirage_state* state) {
 		state->parent = candidate;
 		state->parent->status = ACTIVE;
 		if(state->parent == state->self){
-			state->my_tree = list_find_item(state->trees_seen, (comparator_function) equal_tree_id, state->self->id);
+			state->my_tree = list_find_item(state->trees_seen, (equal_function) equal_tree_id, state->self->id);
 			if(state->my_tree == NULL){
 				state->my_tree = create_tree(state->self->id, time(NULL));
 				list_add_item_to_head(state->trees_seen, state->my_tree);

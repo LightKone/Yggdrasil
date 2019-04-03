@@ -11,9 +11,9 @@
 
 #include "Yggdrasil_lowlvl.h"
 #include "core/ygg_runtime.h"
-#include "protocols/communication/routing/batman.h"
-#include "protocols/utility/topologyManager.h"
-#include "protocols/dispatcher/dispatcher_logger.h"
+#include "protocols/wireless/communication/routing/batman.h"
+#include "protocols/wireless/utility/topologyManager.h"
+#include "protocols/wireless/dispatcher/dispatcher_logger.h"
 
 #include "interfaces/routing/routing_interface.h"
 

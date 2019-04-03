@@ -20,7 +20,7 @@
 #include <wordexp.h>
 #include <pthread.h>
 
-#include "protocols/utility/topologyManager.h"
+#include "protocols/wireless/utility/topologyManager.h"
 #include "interfaces/aggregation/aggregation_operations.h"
 #include "control_protocol_utils.h"
 
