@@ -55,6 +55,11 @@ add_executable(push_gossip $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginter
 add_executable(dispatcher_logger $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglllib_obj> applications/tests/dispatcher_logger_test.c)
 add_executable(dynamic $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglllib_obj> applications/tests/dynamic_protocols_test.c)
 
+add_executable(hyparview $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglllib_obj> applications/tests/hyparview_test.c)
+add_executable(plumtree $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglllib_obj> applications/tests/plumtree_test.c)
+add_executable(xbot $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglllib_obj> applications/tests/xbot_test.c)
+
+
 #REMOTE CONTROL
 add_library(yggcontrol_protocols OBJECT ${SRC_FILES_CONTROL_PROTOCOLS})
 add_library(yggcontrol_utils OBJECT ${SRC_FILES_CONTROL_UTILS})
