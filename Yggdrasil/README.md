@@ -232,6 +232,13 @@ There are two types of Network Configurations:
 
 The yggdrasil runtime is responsible for initializing the dispatcher protocol accordingly to the given network configuration.
 
+**Simple TCP dispatcher**
+* Opens connections as needed by dispatched messages
+* Provides three notifications - connection up, connection down, unable to connected
+* Provides one request - close connection
+* Due to simplicity: connections are half-duplex (each pair has two connections: one to receive, one to send)
+
+
 Protocols for Ip networks have been added. These include:
 1. Membership - HyParView.
 2. Membership - Xbot.
@@ -243,9 +250,9 @@ The project has been restructured:
 * Protocols for ip networks are under *protocols/ip/*
 
 **YggMessages** have also changed:
-* Header has been changed to allow *IP:PORT* and *MAC Address*.
+* Header has been changed to allow *IP:PORT* or *MAC Address*.
 * Now contain a dynamic payload instead of a static one.
-* More functions to manipulate the data structure correctly.
+* More functions to manipulate the data structure correctly (similar to the ones provided to other event types).
 
 
 Redefined `comparator_function` to `equal_function` and added a *true* definition of `comparator_function` (compares if two given elements are larger, equal, or smaller).
