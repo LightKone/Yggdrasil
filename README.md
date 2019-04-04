@@ -1,4 +1,5 @@
-# Yggdrasil
+
+# Yggdrasil (Work in-Progress)
 Yggdrasil Public Repository (Version 2)
 
 This project contains the code of Yggdrasil, a framework tool to develop distributed protocols and applications on wireless adhoc networks in linux based systems.
@@ -9,9 +10,12 @@ Inside there are two directories containing source code:
 
 * Yggdrasil: This contains code to develop protocols and applications and some examples.
 
+### Note:
+This contains work in-progress
+
 ### Compiling
 
-In order to compile Yggdrasil you need to have the following depencies installed:
+In order to compile Yggdrasil you need to have the following dependencies installed:
 
 * libnl3
 * uuid
@@ -25,3 +29,9 @@ To do so use the following command:
 
 Inside Yggdrasil's project you can find examples on how to add and customize the compilation.
 These are present in the files CMakeList
+
+
+### Change log:
+We have extended the framework to support ip networks as well as wireless adhoc networks.
+
+More details in each directory.

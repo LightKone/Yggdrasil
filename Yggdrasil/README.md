@@ -11,8 +11,8 @@ The runtime initializes 3 protocols by default, the dispatcher protocol, the tim
 3. Protocol executor : This will manage protocols that a share a simple execution thread.
 
 
-The runtime registers each protocol and handles the interation between them.
-These interations are done by blocking queues. Each protocol has associated to it a queue which it uses to receive events by other protocols.
+The runtime registers each protocol and handles the interaction between them.
+These interactions are done by blocking queues. Each protocol has associated to it a queue which it uses to receive events by other protocols.
 
 The elements present in these queues are queue_t_elem which can be of 4 different types:
 YggMessage, YggTimer, YggEvent, YggRequest.
@@ -21,7 +21,7 @@ A definition of these structures can be found in:
 ```
 ./core/proto_data_struct.h
 ```
- 
+
 The queue have priorities for each element type, which is defined by the order described in enum queue_t_elemeent_type_ in:
 ```
 ./core/utils/queue_elem.h
@@ -48,7 +48,7 @@ Yggdrasil protocols are designed to provide the most basic and fundamental funct
 
 User defined protocols are protocols that provide specific functionalities to applications. These are the protocols that one should develop with Yggdrasil. As of now, Yggdrasil provides a variety of user defined protocols that can be found in the directory protocols.
 
-Application components are components that are not necessarly protocols, but are essencial parts of applications.
+Application components are components that are not necessarily protocols, but are essential parts of applications.
 
 To incorporate Yggdrasil within a main application, the runtime must be configured.
 
@@ -110,10 +110,10 @@ In Yggdrasil protocols are event driven. Events are consumed from the protocol's
 Protocols can be defined in two ways:
 
 1. Following an independent execution model:
-	* In this the protocol is configured by the runtime to run on an independ execution thread
+	* In this the protocol is configured by the runtime to run on an independent execution thread
 2. Following a shared execution model:
-	* In this the protocol is configured by the runtime to run withing the context of the execution of the protocol executor.
-	
+	* In this the protocol is configured by the runtime to run within the context of the execution of the protocol executor.
+
 To configure the protocol to run in one model or the other, protocols are required to have a an initialization function, where they create a protocol definition. This definition will contain all the necessary information that is required for the runtime to configure and execute the protocol correctly.
 
 As an example:
@@ -122,10 +122,10 @@ As an example:
 proto_def* protocol_init(void* args) {
 	protocol_state* state = malloc(sizeof(protocol_state)); //the protocol's state
 	... //initialize the protocol's state
-	
+
 	proto_def* protocol_definition = create_protocol_definition(protocol_id, protocol_name, state, protocol_destroy_function); //create a protocol definition
-	
-	proto_def_add_produced_events(protocol_definition, number_of_produced_notifications); 
+
+	proto_def_add_produced_events(protocol_definition, number_of_produced_notifications);
 	proto_def_add_consumed_event(protocol_definition, producer_protocol_id, notification_id);
 	if(shared_execution_model) {
 		proto_def_add_msg_handler(protocol_definition, process_msg);
@@ -134,9 +134,9 @@ proto_def* protocol_init(void* args) {
 		proto_def_add_request_handler(protocol_definition, process_request);
 	} else
 		proto_def_add_protocol_main_loop(protocol_definition, protocol_main_loop);
-	
+
 	...//other initializations required
-	
+
 	return protocol_definition
 }
 ```
@@ -223,3 +223,29 @@ int deliverRequest(YggRequest* req);
  */
 int deliverReply(YggRequest* res);
 ```
+
+### Change log:
+
+There are two types of Network Configurations:
+1. WirelessNetwork - defines a network configuration for wireless ad hoc.
+2. IpNetwork - defines a network configuration for tcp/ip (udp is not yet implemented).
+
+The yggdrasil runtime is responsible for initializing the dispatcher protocol accordingly to the given network configuration.
+
+Protocols for Ip networks have been added. These include:
+1. Membership - HyParView.
+2. Membership - Xbot.
+3. Dissemination - Plumtree.
+4. Utility - UDP oracle (performs ping-pong between two peers to measure network latency).
+
+The project has been restructured:
+* Protocols for wireless adhoc networks are under *protocols/wireless/*
+* Protocols for ip networks are under *protocols/ip/*
+
+**YggMessages** have also changed:
+* Header has been changed to allow *IP:PORT* and *MAC Address*.
+* Now contain a dynamic payload instead of a static one.
+* More functions to manipulate the data structure correctly.
+
+
+Redefined `comparator_function` to `equal_function` and added a *true* definition of `comparator_function` (compares if larger, equal, or smaller).

@@ -15,10 +15,10 @@ https://github.com/Distrotech/iw
 ### Demos
 
 This project offers 5 demos to test the basic functionalities of the project.
-These demos are Sender and Receiver applicatios. In order to test connectivity they should be used in pairs.
+These demos are Sender and Receiver applications. In order to test connectivity they should be used in pairs.
 
 We provide the following demos:
-	
+
 * Sender
 * Receiver
 * SenderBrute
@@ -33,3 +33,7 @@ The SenderWithReply sends a message and waits for two seconds for the reply.
 The ReceiverWithReply receives a message and sends a reply to the sender.
 
 
+### Change log:
+
+Added support for Ip networks by extending the API.
+API now allows to create TCP/IP channels (these only contain the listen socket).
