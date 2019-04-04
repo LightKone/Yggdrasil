@@ -248,4 +248,4 @@ The project has been restructured:
 * More functions to manipulate the data structure correctly.
 
 
-Redefined `comparator_function` to `equal_function` and added a *true* definition of `comparator_function` (compares if larger, equal, or smaller).
+Redefined `comparator_function` to `equal_function` and added a *true* definition of `comparator_function` (compares if two given elements are larger, equal, or smaller).
