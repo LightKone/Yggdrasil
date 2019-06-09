@@ -12,28 +12,22 @@
 #ifndef YGG_LL_UTILS_H_
 #define YGG_LL_UTILS_H_
 
+
+#include <ctype.h>
+#include <stdio.h>
+
 #include "data_struct.h"
 #include "constants.h"
-
-/*************************************************
- * Standart method return values
- *************************************************/
-#define SUCCESS 1
-#define FAILED 0
-
-/*************************************************
- * Global Vars
- *************************************************/
-int lk_error_code;
 
 /*************************************************
  * Utilities
  *************************************************/
 
-int nameToType(char* name);
-char * wlan2asc(WLANAddr* addr, char str[]);
 int str2wlan(char machine[], char human[]);
 void mac_addr_n2a(char *mac_addr, unsigned char *arg);
+
+int nameToType(char* name);
+char * wlan2asc(WLANAddr* addr, char str[]);
 
 /*************************************************
  * Auxiliary Functions
@@ -41,6 +35,7 @@ void mac_addr_n2a(char *mac_addr, unsigned char *arg);
 
 void setToAddress(WLANAddr *daddr, int ifindex, struct sockaddr_ll *to); //change or add a new to apply directly to LKMessage
 char* getSSID(unsigned char *ie, int ielen);
+
 
 /*************************************************
  * Verification Functions

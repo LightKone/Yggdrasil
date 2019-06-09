@@ -428,10 +428,9 @@ double get_cpu_temp(){
 
 	double systemp;
 	FILE *thermal;
-	int n;
 
 	thermal = fopen("/sys/class/thermal/thermal_zone0/temp","r");
-	n = fscanf(thermal,"%f",&systemp);
+	fscanf(thermal,"%lf",&systemp);
 	fclose(thermal);
 	//systemp = millideg / 1000;
 

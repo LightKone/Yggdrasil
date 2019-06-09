@@ -11,10 +11,11 @@
 
 #include <stdio.h>
 
-#include "api.h"
-#include "data_struct.h"
-#include "errors.h"
-#include "constants.h"
+#include "../src_wireless/api.h"
+#include "../src_wireless/data_struct.h"
+#include "../src_wireless/errors.h"
+#include "../src_wireless/constants.h"
+#include "../src_wireless/utils.h"
 
 
 int main(int argc, char** argv) {

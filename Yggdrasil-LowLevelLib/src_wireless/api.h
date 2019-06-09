@@ -67,14 +67,4 @@ int chbroadcast(Channel* ch, YggPhyMessage* message);
  */
 int chreceive(Channel* ch, YggPhyMessage* message);
 
-
-
-/*******************************************************
- *  IP sockets
- *******************************************************/
-
-int setupIpChannel(Channel* ch, NetworkConfig* ntc);
-
-void set_sock_opt(int sockid, Channel* ch);
-
 #endif /* YGG_LL_API_H_ */
