@@ -231,7 +231,7 @@ static void* dispatcher_main_loop(main_loop_args* args) {
 #ifdef DEBUG
 			char s[200];
 			memset(s, 0, 200);
-			sprintf(s, "Message sent to network from %d with seq number %d", elem.data.msg.Proto_id, mid);
+			sprintf(s, "Message sent to network from %d", elem.data.msg.Proto_id);
 			ygg_log("DISPACTHER-SENDER", "ALIVE",s);
 #endif
 

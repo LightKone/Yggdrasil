@@ -179,7 +179,7 @@ static void* dispatcher_receiver(void* args) {
 		char addr[33];
 		memset(addr, 0, 33);
 		memset(s, 0, 2000);
-		sprintf(s, "Delivering msg from %s to proto %d", wlan2asc(&msg.srcAddr, addr), msg.Proto_id);
+		sprintf(s, "Delivering msg from %s to proto %d", wlan2asc(&msg.header.src_addr.mac_addr, addr), msg.Proto_id);
 		ygg_log("DISPACTHER-RECEIVER", "ALIVE",s);
 #endif
 
@@ -259,7 +259,7 @@ static void* dispatcher_main_loop(main_loop_args* args) {
 #ifdef DEBUG
 			char s[200];
 			memset(s, 0, 200);
-			sprintf(s, "Message sent to network from %d with seq number %d", elem.data.msg.Proto_id, mid);
+			sprintf(s, "Message sent to network from %d", elem.data.msg.Proto_id);
 			ygg_log("DISPACTHER-SENDER", "ALIVE",s);
 #endif
 			free_elem_payload(&elem);

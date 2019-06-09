@@ -76,8 +76,9 @@ static bool is_passive_full(hyparview_state* state) {
 	return state->passive_view->size >= state->max_passive;
 }
 
-static void print_views(list* active, list* passive) {
+static void print_views(list* active, list* passive, peer* self) {
 
+    printf("HyParView views: %s  %d\n", self->ip.addr, self->ip.port);
 	printf("\t active\n");
 	for(list_item* it = active->head; it != NULL; it = it->next) {
 		peer* p = (peer*) it->data;
@@ -95,6 +96,7 @@ static void print_views(list* active, list* passive) {
 
 static void printf_shuffle_request(shuffle_request* sr, bool refs) {
 
+    /*
 	printf("shuffle number: %d\n", sr->seq_num);
 
 	printf("\t active\n");
@@ -119,7 +121,7 @@ static void printf_shuffle_request(shuffle_request* sr, bool refs) {
 		else
 			printf("\n");
 	}
-
+    */
 }
 
 static void send_notification(hyparview_events notification_id, short proto_id, peer* p) {
@@ -349,7 +351,7 @@ static bool add_to_passive_if_not_exists(list* active_view, list* passive_view, 
 	return true;
 }
 
-static void drop_random_from_active_view(list* active_view, list* pending, list* passive_view, peer* self, int max_passive, short proto_id) {
+static void drop_random_from_active_view(hyparview_state* state, list* active_view, list* pending, list* passive_view, peer* self, int max_passive, short proto_id) {
 
 	peer* p;
 	if(pending->size > 0) {
@@ -360,6 +362,7 @@ static void drop_random_from_active_view(list* active_view, list* pending, list*
 		if(p) {
 			send_disconnect(p, self,proto_id);
 			send_notification(OVERLAY_NEIGHBOUR_DOWN, proto_id, p);
+			//send_close_request(&p->ip, state);
 		}
 	}
 
@@ -393,7 +396,7 @@ static bool add_to_pending_if_not_exists(list* pending, list* active_view, list*
 	return true;
 }
 
-static bool add_to_active_if_not_exists(list* active_view, list* pending, list* passive_view, peer* p, peer* self, int max_active, int max_passive, short proto_id) {
+static bool add_to_active_if_not_exists(hyparview_state* state, list* active_view, list* pending, list* passive_view, peer* p, peer* self, int max_active, int max_passive, short proto_id) {
 	if(equal_peer(p, self))
 		return false;
 
@@ -403,7 +406,7 @@ static bool add_to_active_if_not_exists(list* active_view, list* pending, list* 
 
 
 	if(active_view->size + pending->size >= max_active)
-		drop_random_from_active_view(active_view, pending, passive_view, self, max_passive, proto_id);
+		drop_random_from_active_view(state, active_view, pending, passive_view, self, max_passive, proto_id);
 
 	a = list_find_item(passive_view, equal_peer, p);
 	if(a) {
@@ -441,7 +444,7 @@ static void init_msg_header(YggMessage* msg, hyparview_msg_type type, short prot
 }
 
 static void send_shuffle_reply(peer* dest, peer* self, unsigned short seq_num, list* k_p, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending shuffle reply to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -463,7 +466,7 @@ static void send_shuffle_reply(peer* dest, peer* self, unsigned short seq_num, l
 //new time to leave must have been evaluated and changed accordingly before call
 static void forward_shuffle(YggMessage* shuffle_msg, peer* dest) {
 
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "forwarding shuffle to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -478,7 +481,7 @@ static void forward_shuffle(YggMessage* shuffle_msg, peer* dest) {
 
 //dest is random; time_to_live == PRWL
 static void send_shuffle(peer* dest, peer* self, shuffle_request* sr, short time_to_live, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending shuffle to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -511,7 +514,7 @@ static void send_shuffle(peer* dest, peer* self, shuffle_request* sr, short time
 }
 
 static void send_hello_neighbour_reply(peer* dest, peer* self, bool reply, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending hello reply to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -529,7 +532,7 @@ static void send_hello_neighbour_reply(peer* dest, peer* self, bool reply, short
 
 //prio == true -> high; prio == false --> low
 static void send_hello_neighbour(peer* dest, peer* self, bool prio, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending hello to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -548,7 +551,7 @@ static void send_hello_neighbour(peer* dest, peer* self, bool prio, short proto_
 }
 
 static void send_disconnect(peer* dest, peer* self, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending disconnect to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -563,7 +566,7 @@ static void send_disconnect(peer* dest, peer* self, short proto_id) {
 }
 
 static void send_forward_join(peer* dest, peer* newNode, short time_to_live, peer* self, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending forward join to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -588,7 +591,7 @@ static void send_forward_join(peer* dest, peer* newNode, short time_to_live, pee
 }
 
 static void send_joinreply(peer* dest, peer* self, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending join reply to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -601,7 +604,7 @@ static void send_joinreply(peer* dest, peer* self, short proto_id) {
 }
 
 static void send_join(peer* dest, peer* self, short proto_id) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "sending join to %s  %d", dest->ip.addr,  dest->ip.port);
@@ -615,10 +618,10 @@ static void send_join(peer* dest, peer* self, short proto_id) {
 }
 
 static void process_join(YggMessage* msg, void* ptr, hyparview_state* state) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing join of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing join of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 	peer* p = list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
@@ -629,7 +632,7 @@ static void process_join(YggMessage* msg, void* ptr, hyparview_state* state) {
 	p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(is_active_full(state))
-		drop_random_from_active_view(state->active_view, state->pending, state->passive_view, state->self, state->max_passive, state->proto_id);
+		drop_random_from_active_view(state, state->active_view, state->pending, state->passive_view, state->self, state->max_passive, state->proto_id);
 
 	if(!p)
 		p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
@@ -649,16 +652,16 @@ static void process_join(YggMessage* msg, void* ptr, hyparview_state* state) {
 }
 
 static void process_joinreply(YggMessage* msg, void* ptr, hyparview_state* state) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing join reply of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing join reply of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 	//remove from pending, add to active, send notification
 	peer* p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
 	if(p) {
-		bool ok = add_to_active_if_not_exists(state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id);
+		bool ok = add_to_active_if_not_exists(state, state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id);
 		if(!ok) {
 			destroy_peer(p);
 			return;
@@ -671,10 +674,10 @@ static void process_joinreply(YggMessage* msg, void* ptr, hyparview_state* state
 }
 
 static void process_forward_join(YggMessage* msg, void* ptr, hyparview_state* state) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing forward join of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing forward join of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 	uint16_t ttl;
@@ -718,10 +721,10 @@ static void process_forward_join(YggMessage* msg, void* ptr, hyparview_state* st
 }
 
 static void process_disconnect(YggMessage* msg, void* ptr, hyparview_state* state) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing disconnect of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing disconnect of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 	peer* p = list_remove_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
@@ -747,6 +750,11 @@ static void process_disconnect(YggMessage* msg, void* ptr, hyparview_state* stat
 
 			setupTimer(&t);
 		}
+	} else {
+        char warning_msg[100];
+        bzero(warning_msg, 100);
+        sprintf(warning_msg, "processing disconnect of non-active neighbor %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+        ygg_log("HYPARVIEW", "WARNING", warning_msg);
 	}
 
 }
@@ -903,10 +911,10 @@ static void destroy_passive_subset(list* passive_subset, list* passive_view) {
 }
 
 static void process_shuffle(YggMessage* msg, void* ptr, hyparview_state* state) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing shuffle of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing shuffle of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 
@@ -938,7 +946,7 @@ static void process_shuffle(YggMessage* msg, void* ptr, hyparview_state* state) 
 
 		shuffle_request* sr = create_shuffle_request_from_msg(msg, ptr);
 
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 		printf_shuffle_request(sr, false);
 #endif
 
@@ -958,10 +966,10 @@ static void process_shuffle(YggMessage* msg, void* ptr, hyparview_state* state) 
 }
 
 static void process_shufflereply(YggMessage* msg, void* ptr, hyparview_state* state) {
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing shuffle reply of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing shuffle reply of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 	uint16_t seq;
@@ -1024,7 +1032,7 @@ static void process_shufflereply(YggMessage* msg, void* ptr, hyparview_state* st
 
 		free(ps);
 
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 		printf_shuffle_request(sr, true);
 #endif
 		sr->ka->size = original_ka_size;
@@ -1038,10 +1046,10 @@ static void process_shufflereply(YggMessage* msg, void* ptr, hyparview_state* st
 
 static void process_helloneigh(YggMessage* msg, void* ptr, hyparview_state* state) {
 
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
-	sprintf(debug_msg, "processing hello neighbour of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
+	sprintf(debug_msg, "processing hello neighbour of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 
@@ -1054,7 +1062,7 @@ static void process_helloneigh(YggMessage* msg, void* ptr, hyparview_state* stat
 		if(!p)
 			p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 
-		if(!add_to_active_if_not_exists(state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id)) {
+		if(!add_to_active_if_not_exists(state, state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id)) {
 			destroy_peer(p);
 			ygg_log("HYPARVIEW", "WARNING", "hello neighbour with high priority is already in my active view");
 		} else {
@@ -1066,7 +1074,7 @@ static void process_helloneigh(YggMessage* msg, void* ptr, hyparview_state* stat
 		if(!is_active_full(state)) {
 			if(!p)
 				p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
-			if(!add_to_active_if_not_exists(state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id)) {
+			if(!add_to_active_if_not_exists(state, state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id)) {
 				destroy_peer(p);
 				ygg_log("HYPARVIEW","WARNING", "hello neighbour with low priority is already in my active view");
 			} else {
@@ -1086,7 +1094,7 @@ static void process_helloneigh(YggMessage* msg, void* ptr, hyparview_state* stat
 
 static void process_helloneighreply(YggMessage* msg, void* ptr, hyparview_state* state) {
 
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 	char debug_msg[100];
 	bzero(debug_msg, 100);
 	sprintf(debug_msg, "processing hello neighbour reply of %s  %d", msg->header.src_addr.ip.addr,  msg->header.src_addr.ip.port);
@@ -1105,7 +1113,7 @@ static void process_helloneighreply(YggMessage* msg, void* ptr, hyparview_state*
 		state->backoff_s = state->original_backoff_s;
 		state->backoff_ns = state->original_backoff_ns;
 
-		if(add_to_active_if_not_exists(state->active_view, state->pending, state->passive_view, n, state->self, state->max_active, state->max_passive, state->proto_id))
+		if(add_to_active_if_not_exists(state, state->active_view, state->pending, state->passive_view, n, state->self, state->max_active, state->max_passive, state->proto_id))
 			send_notification(OVERLAY_NEIGHBOUR_UP, state->proto_id, n);
 		else {
 			destroy_peer(n);
@@ -1184,8 +1192,8 @@ static shuffle_request* create_shuffle_request(hyparview_state* state) {
 
 static void do_the_suffle(hyparview_state* state) {
 
-#ifdef DEBUG
-	print_views(state->active_view, state->passive_view);
+#if defined DEBUG || defined DEBUG_HYPERVIEW
+	print_views(state->active_view, state->passive_view, state->self);
 #endif
 	peer* p = get_random_peer(state->active_view);
 
@@ -1193,7 +1201,7 @@ static void do_the_suffle(hyparview_state* state) {
 
 		shuffle_request* sr = create_shuffle_request(state);
 
-#ifdef DEBUG
+#if defined DEBUG || defined DEBUG_HYPERVIEW
 		printf_shuffle_request(sr, false);
 #endif
 		send_shuffle(p, state->self, sr ,state->PRWL, state->proto_id);

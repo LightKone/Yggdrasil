@@ -130,6 +130,7 @@ typedef struct __plumtree_state {
 
 static void print_tree(plumtree_state* state) {
 
+    printf("PlumTree neighbors:\n");
 	printf("\t eager push:\n");
 	for(list_item* it = state->eager_push_peers->head; it != NULL; it=it->next) {
 		peer* p = (peer*)it->data;
@@ -599,7 +600,9 @@ static void garbage_collect(plumtree_state* state) {
 
 static void process_timer(YggTimer* timer, plumtree_state* state) {
 
-	if(timer->timer_type == 1)
+    if(timer->timer_type == 2)
+        print_tree(state);
+	else if(timer->timer_type == 1)
 		garbage_collect(state);
 	else {
 
@@ -685,6 +688,7 @@ static void process_event(YggEvent* ev, plumtree_state* state) {
 }
 
 static void broadcast(YggRequest* req, plumtree_state* state) {
+
 	int mid = generate_mid(req->payload, req->length, req->proto_origin, state->self);
 
 	eager_push(req->payload, req->length, req->proto_origin, mid, 0, state->self, state);
@@ -696,6 +700,8 @@ static void broadcast(YggRequest* req, plumtree_state* state) {
 	bzero(debug_msg, 100);
 	sprintf(debug_msg,"broadcasting msg: mid: %d round: %d", mid, 0);
 	ygg_log("PLUMTREE", "DEBUG", debug_msg);
+
+
 #endif
 	deliver_msg(req->proto_origin, req->payload, req->length, &state->self->ip, &state->self->ip);
 
@@ -777,6 +783,14 @@ proto_def* plumtree_init(void* args) {
 
 	setupTimer(&gc);
 
+#ifdef DEBUG
+    YggTimer debug;
+    YggTimer_init(&debug, PROTO_PLUMTREE, PROTO_PLUMTREE);
+    YggTimer_set(&debug, 5, 0, 5, 0);
+    YggTimer_setType(&debug, 2); //lets say 2 == debug (print tables)
+
+    setupTimer(&debug);
+#endif
 	return plumtree;
 }
 

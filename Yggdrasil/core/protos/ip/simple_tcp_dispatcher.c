@@ -317,7 +317,7 @@ static connection* establish_connection(simple_tcp_dispatcher_state* state, YggM
 #ifdef DEBUG
 		char debug_msg[100];
 		bzero(debug_msg, 100);
-		sprintf(debug_msg "performed connect to: %s  %d\n", c->ip.addr, c->ip.port);
+		sprintf(debug_msg, "performed connect to: %s  %d\n", c->ip.addr, c->ip.port);
 		ygg_log("TCP_DISPATCHER", "DEBUG", debug_msg);
 #endif
 		list_add_item_to_tail(state->outbound, c);
