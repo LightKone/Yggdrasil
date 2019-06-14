@@ -12,6 +12,14 @@
 
 #include "../src/data_struct.h"
 
+
+/*******************************************************
+ *  IP configuration
+ *******************************************************/
+
+
+NetworkConfig* defineIpNetworkConfig(const char* ip_addr, unsigned short port, connection_type connection, int max_pending_connections, int keepalive);
+
 /*******************************************************
  *  IP sockets
  *******************************************************/

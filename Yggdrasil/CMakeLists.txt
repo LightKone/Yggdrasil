@@ -5,6 +5,15 @@ cmake_minimum_required(VERSION 2.8)
 # Project's name
 project(Yggdrasil)
 
+#add subprojects
+add_subdirectory(core)
+
+add_subdirectory(protocols)
+
+add_subdirectory(utils)
+#add_subdirectory(application_components)
+add_subdirectory(applications)
+
 # get all *.c files recursively
 file(GLOB_RECURSE SRC_FILES_CORE ${PROJECT_SOURCE_DIR}/core/*.c)
 file(GLOB_RECURSE SRC_FILES_PROTOS ${PROJECT_SOURCE_DIR}/protocols/*.c)
@@ -18,6 +27,7 @@ file(GLOB_RECURSE SRC_FILES_CONTROL_UTILS ${PROJECT_SOURCE_DIR}/remote_control/u
 # include headers
 include_directories(.)
 
+include_directories(core)
 include_directories(../Yggdrasil-LowLevelLib/)
 include_directories(../Yggdrasil-LowLevelLib/src)
 
@@ -35,14 +45,17 @@ set(CMAKE_C_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE} -lm -lnl-genl-3 -lnl-3 -
 #list(REMOVE_ITEM SRC_FILES_PROTOS ${PROJECT_SOURCE_DIR}/protocols/incomplete/under_development.c)
 
 #add libraries
-add_library(yggprotos OBJECT ${SRC_FILES_PROTOS})
-add_library(yggcore OBJECT ${SRC_FILES_CORE})
-add_library(ygginterfaces OBJECT ${SRC_FILES_INTERFACES})
-add_library(yggdatastruct OBJECT ${SRC_FILES_DATA_STRUCT})
+#add_library(yggprotos OBJECT ${SRC_FILES_PROTOS})
+#add_library(yggcore OBJECT ${SRC_FILES_CORE})
+#add_library(ygginterfaces OBJECT ${SRC_FILES_INTERFACES})
+#add_library(yggdatastruct OBJECT ${SRC_FILES_DATA_STRUCT})
 
-add_dependencies(yggprotos yggcore)
+#add_dependencies(yggprotos yggcore)
 
-add_executable(simple_discovery $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/simple_discovery_test.c)
+#wireless
+#add_executable(simple_discovery $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/simple_discovery_test.c)
+#add_executable(simple_discovery $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore_wireless> applications/tests/simple_discovery_test.c)
+#[[
 add_executable(fault_detector_discovery $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/fault_detector_discovery_test.c)
 add_executable(mirage $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/mirage_test.c)
 add_executable(gap $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/gap_test.c)
@@ -55,9 +68,17 @@ add_executable(push_gossip $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginter
 add_executable(dispatcher_logger $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/dispatcher_logger_test.c)
 add_executable(dynamic $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/dynamic_protocols_test.c)
 
-add_executable(hyparview $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/hyparview_test.c)
-add_executable(plumtree $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/plumtree_test.c)
-add_executable(xbot $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/xbot_test.c)
+#ip
+
+add_executable(test_hyparview $<TARGET_OBJECTS:hyparview>  applications/tests/hyparview_test.c)
+target_link_libraries(test_hyparview PUBLIC yggcore_ip)
+add_executable(block_transfer_server $<TARGET_OBJECTS:hyparview>  $<TARGET_OBJECTS:block_data_transfer> $<TARGET_OBJECTS:multi_tcp_dispatcher> applications/tests/block_transfer_test.c)
+target_link_libraries(block_transfer_server plumtree yggcore_ip)
+target_compile_definitions(block_transfer_server PRIVATE TEST_LOCAL_TRANSFER)
+#add_executable(plumtree $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces>   applications/tests/plumtree_test.c)
+#target_link_libraries(plumtree yggcore_ip)
+#add_executable(xbot $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces>   applications/tests/xbot_test.c)
+#target_link_libraries(xbot yggcore_ip)
 
 #add_executable(tls $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/tls_test.c)
 add_executable(dispatch $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/tests/multi_dispatcher_test.c)
@@ -93,3 +114,4 @@ add_executable(cmddebug $<TARGET_OBJECTS:yggcontrol_protocols> $<TARGET_OBJECTS:
 add_executable(MessageExchange $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/demos/MessageExchange.c)
 add_executable(OneHopBcast $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/demos/OneHopBcast.c)
 add_executable(OneHopBcastWithTimer $<TARGET_OBJECTS:yggprotos> $<TARGET_OBJECTS:ygginterfaces> $<TARGET_OBJECTS:yggdatastruct> $<TARGET_OBJECTS:yggcore> $<TARGET_OBJECTS:ygglib_base_obj> $<TARGET_OBJECTS:ygglib_ip_obj> $<TARGET_OBJECTS:ygglib_wireless_obj> applications/demos/OneHopBcastWithTimer.c)
+]]

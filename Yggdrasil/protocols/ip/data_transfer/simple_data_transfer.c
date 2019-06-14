@@ -91,7 +91,7 @@ static bool write_file_to_disk(void* buffer, file_meta* meta) {
         }
 
         writen += n;
-        printf("Written %d out of %d\n", writen, meta->file_size);
+        printf("Written %ld out of %ld\n", writen, meta->file_size);
     }
 
 
@@ -110,6 +110,7 @@ static bool write_file_to_disk(void* buffer, file_meta* meta) {
 //    }
 //
 //    return false;
+    return true;
 }
 
 static void request_dissemination(file_meta* meta, simple_data_transfer_state* state) {
@@ -251,8 +252,8 @@ proto_def* simple_data_transfer_init(simple_data_transfer_args* args) {
 
     proto_def* data_transfer = create_protocol_definition(PROTO_SIMPLE_DATA_TRANSFER, "simple data transfer", state, NULL);
 
-    proto_def_add_msg_handler(data_transfer, process_msg);
-    proto_def_add_request_handler(data_transfer, process_request);
+    proto_def_add_msg_handler(data_transfer, (YggMessage_handler) process_msg);
+    proto_def_add_request_handler(data_transfer, (YggRequest_handler) process_request);
 
 
     return data_transfer;
@@ -264,6 +265,8 @@ simple_data_transfer_args* simple_data_transfer_args_init(short dissemination_pr
     args->dir = dir;
     args->dissemination_request = dissemination_request;
     args->dissemination_proto = dissemination_proto;
+
+    return args;
 }
 
 void simple_data_transfer_args_destroy(simple_data_transfer_args* args) {

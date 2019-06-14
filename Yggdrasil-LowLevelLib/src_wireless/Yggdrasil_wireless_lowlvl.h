@@ -12,13 +12,13 @@
 #ifndef YGGDRASIL_LL_H_
 #define YGGDRASIL_LL_H_
 
-#include "src_wireless/api.h"
-#include "src_wireless/constants.h"
-#include "src_wireless/data_struct.h"
-#include "src_wireless/errors.h"
-#include "src_wireless/hw.h"
-#include "src_wireless/network.h"
-#include "src_wireless/utils.h"
+#include "api.h"
+#include "constants.h"
+#include "data_struct.h"
+#include "errors.h"
+#include "hw.h"
+#include "network.h"
+#include "utils.h"
 
 
 #endif /* YGGDRASIL_LL_H_ */

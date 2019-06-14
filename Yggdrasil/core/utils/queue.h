@@ -18,11 +18,11 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <uuid/uuid.h>
+#include <errno.h>
 
-#include "Yggdrasil_lowlvl.h"
+//#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 
-#include "core/utils/queue_elem.h"
-#include "core/proto_data_struct.h"
+#include "queue_elem.h"
 
 typedef struct _queue_t queue_t;
 

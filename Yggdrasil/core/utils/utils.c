@@ -222,12 +222,16 @@ int setDestToAddr(YggMessage* msg, char* addr){
 
 int setDestToBroadcast(YggMessage* msg) {
 	char mcaddr[WLAN_ADDR_LEN];
+#ifdef WIRELESS_NETWORKS
 	str2wlan(mcaddr, WLAN_BROADCAST); //translate addr to machine addr
+#endif
 	return setDestToAddr(msg, mcaddr);
 }
 
 void setBcastAddr(WLANAddr* addr){
+#ifdef WIRELESS_NETWORKS
 	str2wlan((char*) addr->data, WLAN_BROADCAST);
+#endif
 }
 
 // Both min and max are included in the possible values

@@ -2265,7 +2265,7 @@ static void process_event(YggEvent* ev, xbot_state* state) {
 
 }
 //Left to apply a biased synthetic oracle
-#include "core/utils/hashfunctions.h"
+#include "utils/hashfunctions.h"
 
 static int hash(IPAddr* ip1, IPAddr *ip2) {
 	unsigned short len = 32+sizeof(unsigned short)*2;

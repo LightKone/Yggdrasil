@@ -12,7 +12,7 @@
 #ifndef CORE_QUEUE_ELEM_H_
 #define CORE_QUEUE_ELEM_H_
 
-#include "core/proto_data_struct.h"
+#include "proto_data_struct.h"
 
 //The order of the elements here also define the priority of them being poped out of queues
 typedef enum queue_t_elemeent_type_ {

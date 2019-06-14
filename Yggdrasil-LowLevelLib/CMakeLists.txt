@@ -3,18 +3,29 @@
 cmake_minimum_required(VERSION 2.8)
 
 # Project's name
-project(Yggdrasil)
+project(Yggdrasil_ll)
 
 # get all *.cpp files recursively
 file(GLOB_RECURSE SRC_FILES_SRC ${PROJECT_SOURCE_DIR}/src/*.c)
 file(GLOB_RECURSE SRC_IP_FILES_SRC ${PROJECT_SOURCE_DIR}/src_ip/*.c)
 file(GLOB_RECURSE SRC_WIRELESS_FILES_SRC ${PROJECT_SOURCE_DIR}/src_wireless/*.c)
 
+
+
+add_library(ygglib_base ${SRC_FILES_SRC})
+add_library(ygglib_ip ${SRC_IP_FILES_SRC})
+add_library(ygglib_wireless ${SRC_WIRELESS_FILES_SRC})
+
+#target_compile_options(ygglib_wireless PUBLIC "-lnl-genl-3 -lnl-3")
+#set_property(TARGET ygglib_wireless APPEND_STRING PROPERTY LINK_FLAGS "-lnl-genl-3 -lnl-3")
+
+target_link_libraries(ygglib_ip PUBLIC ygglib_base)
+target_link_libraries(ygglib_wireless PUBLIC ygglib_base nl-genl-3 nl-3)
+
+#target_link_options(ygglib_wireless PUBLIC "-lnl-genl-3 -lnl-3")
+
 # include headers
-include_directories(src)
-include_directories(src_ip)
-include_directories(src_wireless)
-include_directories(demos)
+#[[
 include_directories(/usr/include)
 include_directories(/usr/include/uuid)
 include_directories(/usr/include/libnl3)
@@ -47,4 +58,4 @@ target_link_libraries(ReceiverWithReply  ygglib_base ygglib_wireless)
 target_link_libraries(Sender ygglib_base ygglib_wireless)
 target_link_libraries(SenderBrute ygglib_base ygglib_wireless)
 target_link_libraries(SenderWithReply ygglib_base ygglib_wireless)
-
+]]

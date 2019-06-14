@@ -102,7 +102,7 @@ static bool write_file_to_disk(void* buffer, file_meta* meta) {
         }
 
         writen += n;
-        printf("Written %d out of %d\n", writen, meta->block_size);
+        printf("Written %ld out of %d\n", writen, meta->block_size);
     }
 
 
@@ -121,6 +121,7 @@ static bool write_file_to_disk(void* buffer, file_meta* meta) {
 //    }
 //
 //    return false;
+    return true;
 }
 
 static void request_dissemination(file_meta* meta, block_data_transfer_state* state) {
@@ -288,8 +289,8 @@ proto_def* block_data_transfer_init(block_data_transfer_args* args) {
 
     proto_def* data_transfer = create_protocol_definition(PROTO_BLOCK_DATA_TRANSFER, "block data transfer", state, NULL);
 
-    proto_def_add_msg_handler(data_transfer, process_msg);
-    proto_def_add_request_handler(data_transfer, process_request);
+    proto_def_add_msg_handler(data_transfer, (YggMessage_handler) process_msg);
+    proto_def_add_request_handler(data_transfer, (YggRequest_handler) process_request);
 
 
     return data_transfer;
@@ -302,6 +303,7 @@ block_data_transfer_args* block_data_transfer_args_init(short dissemination_prot
     args->dissemination_request = dissemination_request;
     args->dissemination_proto = dissemination_proto;
 
+    return args;
 }
 
 void block_data_transfer_args_destroy(block_data_transfer_args* args) {

@@ -24,8 +24,8 @@
 #include <stdarg.h>
 #include <math.h>
 
-#include "core/proto_data_struct.h"
-#include "Yggdrasil_lowlvl.h"
+#include "proto_data_struct.h"
+
 
 typedef enum {false, true} bool;
 

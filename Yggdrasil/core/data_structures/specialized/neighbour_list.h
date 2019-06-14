@@ -13,7 +13,7 @@
 #define DATA_STRUCTURES_SPECIALIZED_NEIGHBOUR_LIST_H_
 
 #include "data_structures/generic/list.h"
-#include "Yggdrasil_lowlvl.h"
+#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 
 #include <uuid/uuid.h>
 

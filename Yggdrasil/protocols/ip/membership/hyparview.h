@@ -9,6 +9,7 @@
 #define PROTOCOLS_IP_MEMBERSHIP_HYPARVIEW_H_
 
 #include "core/ygg_runtime.h"
+#include "core/protos/ip/simple_tcp_dispatcher.h"
 #include "data_structures/generic/list.h"
 
 #define  PROTO_HYPARVIEW 166

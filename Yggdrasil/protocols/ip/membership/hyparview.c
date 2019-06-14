@@ -316,12 +316,12 @@ static bool add_to_passive_if_not_exists(list* active_view, list* passive_view, 
 	if(equal_peer(p, self))
 		return false;
 
-	peer* a = list_find_item(active_view, equal_peer, p);
+	peer* a = list_find_item(active_view, (equal_function) equal_peer, p);
 
 	if(a) //p already exists in active view
 		return false;
 
-	a = list_find_item(passive_view, equal_peer, p);
+	a = list_find_item(passive_view, (equal_function) equal_peer, p);
 	if(a)
 		return false;
 
@@ -331,7 +331,7 @@ static bool add_to_passive_if_not_exists(list* active_view, list* passive_view, 
 			n = drop_random_peer(passive_view);
 		else {
 			while(!n && *next_to_drop != NULL) {
-				n = list_remove_item(passive_view, equal_peer, (*next_to_drop)->data);
+				n = list_remove_item(passive_view, (equal_function) equal_peer, (*next_to_drop)->data);
 				*next_to_drop = (*next_to_drop)->next;
 			}
 
@@ -381,14 +381,14 @@ static bool add_to_pending_if_not_exists(list* pending, list* active_view, list*
 	if(equal_peer(p, self))
 		return false;
 
-	peer* a = list_find_item(pending, equal_peer, p);
+	peer* a = list_find_item(pending, (equal_function) equal_peer, p);
 	if(a)
 		return false;
-	a = list_find_item(active_view, equal_peer, p);
+	a = list_find_item(active_view, (equal_function) equal_peer, p);
 	if(a)
 		return false;
 
-	a = list_remove_item(passive_view, equal_peer, p);
+	a = list_remove_item(passive_view, (equal_function) equal_peer, p);
 	if(a)
 		destroy_peer(a);
 
@@ -400,7 +400,7 @@ static bool add_to_active_if_not_exists(hyparview_state* state, list* active_vie
 	if(equal_peer(p, self))
 		return false;
 
-	peer* a = list_find_item(active_view, equal_peer, p);
+	peer* a = list_find_item(active_view, (equal_function) equal_peer, p);
 	if(a)
 		return false;
 
@@ -408,9 +408,9 @@ static bool add_to_active_if_not_exists(hyparview_state* state, list* active_vie
 	if(active_view->size + pending->size >= max_active)
 		drop_random_from_active_view(state, active_view, pending, passive_view, self, max_passive, proto_id);
 
-	a = list_find_item(passive_view, equal_peer, p);
+	a = list_find_item(passive_view, (equal_function) equal_peer, p);
 	if(a) {
-		peer* c = list_remove_item(passive_view, equal_peer, a);
+		peer* c = list_remove_item(passive_view, (equal_function) equal_peer, a);
 		if(a != c)
 			ygg_log("HYPARVIEW", "WARNING", "did not remove the one that should have been removed (add_to_active), corrupted list ?");
 		destroy_peer(c);
@@ -624,12 +624,12 @@ static void process_join(YggMessage* msg, void* ptr, hyparview_state* state) {
 	sprintf(debug_msg, "processing join of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
-	peer* p = list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_find_item(state->active_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(p)
 		return; //report error?
 
-	p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+	p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(is_active_full(state))
 		drop_random_from_active_view(state, state->active_view, state->pending, state->passive_view, state->self, state->max_passive, state->proto_id);
@@ -659,7 +659,7 @@ static void process_joinreply(YggMessage* msg, void* ptr, hyparview_state* state
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
 	//remove from pending, add to active, send notification
-	peer* p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(p) {
 		bool ok = add_to_active_if_not_exists(state, state->active_view, state->pending, state->passive_view, p, state->self, state->max_active, state->max_passive, state->proto_id);
 		if(!ok) {
@@ -727,7 +727,7 @@ static void process_disconnect(YggMessage* msg, void* ptr, hyparview_state* stat
 	sprintf(debug_msg, "processing disconnect of %s  %d", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("HYPARVIEW", "DEBUG", debug_msg);
 #endif
-	peer* p = list_remove_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_remove_item(state->active_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(p) {
 		send_notification(OVERLAY_NEIGHBOUR_DOWN, state->proto_id, p);
@@ -795,11 +795,11 @@ static bool make_space(hyparview_state* state, peer* p, list_item** next_to_drop
 
 	bool remove_peer = false;
 
-	if(list_find_item(state->active_view, equal_peer, p))
+	if(list_find_item(state->active_view, (equal_function) equal_peer, p))
 		remove_peer = true;
-	if(!remove_peer && list_find_item(state->pending, equal_peer, p))
+	if(!remove_peer && list_find_item(state->pending, (equal_function) equal_peer, p))
 		remove_peer = true;
-	if(!remove_peer && !list_find_item(state->passive_view, equal_peer, p)){
+	if(!remove_peer && !list_find_item(state->passive_view, (equal_function) equal_peer, p)){
 		if(state->passive_view->size + req_space > state->max_passive) {
 			peer* n = NULL;
 
@@ -807,7 +807,7 @@ static bool make_space(hyparview_state* state, peer* p, list_item** next_to_drop
 				n = drop_random_peer(state->passive_view);
 			else {
 				while(!n && *next_to_drop != NULL) {
-					n = list_remove_item(state->passive_view, equal_peer, (*next_to_drop)->data);
+					n = list_remove_item(state->passive_view, (equal_function) equal_peer, (*next_to_drop)->data);
 					*next_to_drop = (*next_to_drop)->next;
 				}
 
@@ -975,7 +975,7 @@ static void process_shufflereply(YggMessage* msg, void* ptr, hyparview_state* st
 	uint16_t seq;
 	ptr = YggMessage_readPayload(msg, ptr, &seq, sizeof(uint16_t));
 
-	shuffle_request* sr = list_remove_item(state->active_shuffles, equal_shuffle_request, ntohs(seq));
+	shuffle_request* sr = list_remove_item(state->active_shuffles, (equal_function) equal_shuffle_request, ntohs(seq));
 
 	if(sr) {
 
@@ -1040,7 +1040,7 @@ static void process_shufflereply(YggMessage* msg, void* ptr, hyparview_state* st
 		destroy_shuffle_request(sr);
 	}
 
-	if(!list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip))
+	if(!list_find_item(state->active_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip))
 		send_close_request(&msg->header.src_addr.ip, state);
 }
 
@@ -1058,7 +1058,7 @@ static void process_helloneigh(YggMessage* msg, void* ptr, hyparview_state* stat
 	bool is_prio = ntohs(prio);
 	if(is_prio) {
 
-		peer* p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+		peer* p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 		if(!p)
 			p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 
@@ -1070,7 +1070,7 @@ static void process_helloneigh(YggMessage* msg, void* ptr, hyparview_state* stat
 			send_notification(OVERLAY_NEIGHBOUR_UP, state->proto_id, p);
 		}
 	} else {
-		peer* p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+		peer* p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 		if(!is_active_full(state)) {
 			if(!p)
 				p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
@@ -1105,7 +1105,7 @@ static void process_helloneighreply(YggMessage* msg, void* ptr, hyparview_state*
 	YggMessage_readPayload(msg, ptr, &reply, sizeof(uint16_t));
 	bool is_true = ntohs(reply);
 
-	peer* n = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* n = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(!n)
 		n = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 
@@ -1253,7 +1253,7 @@ static void process_failed(YggEvent* ev, hyparview_state* state) {
 	void* ptr = YggEvent_readPayload(ev, NULL, ip.addr, 16);
 	ptr = YggEvent_readPayload(ev, ptr, &ip.port, sizeof(unsigned short));
 
-	peer* p = list_remove_item(state->active_view, equal_peer_addr, &ip);
+	peer* p = list_remove_item(state->active_view, (equal_function) equal_peer_addr, &ip);
 
 	if(p) {
 		send_notification(OVERLAY_NEIGHBOUR_DOWN, state->proto_id, p);
@@ -1276,7 +1276,7 @@ static void process_failed(YggEvent* ev, hyparview_state* state) {
 		state->backoff_ns = state->original_backoff_ns;
 
 	} else {
-		p = list_remove_item(state->pending, equal_peer_addr, &ip);
+		p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &ip);
 		if(p)
 			destroy_peer(p);
 	}

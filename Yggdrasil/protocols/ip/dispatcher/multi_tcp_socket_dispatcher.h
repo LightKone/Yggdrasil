@@ -8,6 +8,7 @@
 #ifndef PROTOCOLS_IP_DISPATCHER_MULTI_TCP_SOCKET_DISPATCHER_H_
 #define PROTOCOLS_IP_DISPATCHER_MULTI_TCP_SOCKET_DISPATCHER_H_
 
+#include <errno.h>
 
 #include "core/protos/ip/simple_tcp_dispatcher.h"
 

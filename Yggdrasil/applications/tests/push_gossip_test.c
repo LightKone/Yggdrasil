@@ -9,7 +9,7 @@
  * (C) 2018
  *********************************************************/
 
-#include "Yggdrasil_lowlvl.h"
+#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 #include "core/ygg_runtime.h"
 #include "protocols/wireless/communication/broadcast/push_gossip.h"
 #include "protocols/wireless/utility/topologyManager.h"

@@ -6,8 +6,6 @@
 #define YGGDRASIL_SIMPLE_DATA_TRANSFER_H
 
 
-#include "core/ygg_runtime.h"
-
 #include <sys/mman.h>
 #include <sys/types.h>
 
@@ -15,6 +13,11 @@
 #include <fcntl.h>
 
 #include <limits.h>
+
+#include <errno.h>
+
+#include "core/ygg_runtime.h"
+
 
 
 #define PROTO_SIMPLE_DATA_TRANSFER 366

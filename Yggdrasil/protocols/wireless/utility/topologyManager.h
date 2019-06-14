@@ -19,7 +19,7 @@
 #include "core/ygg_runtime.h"
 #include "core/proto_data_struct.h"
 
-#include "Yggdrasil_lowlvl.h"
+#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 
 #define DB_FILE_PATH "/etc/lightkone/topologyControl/macAddrDB.txt"
 #define NEIGHS_FILE_PATH "/etc/lightkone/topologyControl/neighs.txt"

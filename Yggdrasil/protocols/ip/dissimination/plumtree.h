@@ -11,7 +11,7 @@
 #include "core/ygg_runtime.h"
 #include "protocols/ip/membership/hyparview.h"
 
-#include "core/utils/hashfunctions.h"
+#include "utils/hashfunctions.h"
 
 
 #define PROTO_PLUMTREE 232

@@ -26,7 +26,7 @@
 
 #include <arpa/inet.h>
 
-#include "Yggdrasil_lowlvl.h"
+#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 #include "core/ygg_runtime.h"
 
 #include "remote_control/utils/commands.h"

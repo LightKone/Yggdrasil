@@ -94,7 +94,6 @@ typedef struct __NetworkConfig{
     net_conf config;
 }NetworkConfig;
 
-NetworkConfig* defineIpNetworkConfig(const char* ip_addr, unsigned short port, connection_type connection, int max_pending_connections, int keepalive);
 
 /*************************************************
  * Standart method return values

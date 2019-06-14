@@ -16,12 +16,23 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
-#include "core/utils/queue.h"
-#include "core/utils/utils.h"
-#include "Yggdrasil_lowlvl.h"
+#include "utils/queue.h"
+#include "utils/utils.h"
 
-#include "core/proto_data_struct.h"
+
+#include "src/data_struct.h"
+
+#ifdef WIRELESS_NETWORKS
+#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
+#endif
+
+#ifdef IP_NETWORKS
+#include "src_ip/Yggdrasil_ip_lowlvl.h"
+#endif
+
+#include "proto_data_struct.h"
 
 #define DEFAULT_QUEUE_SIZE 10
 
@@ -140,11 +151,16 @@ void app_def_add_consumed_events(app_def* application_definition, short producer
  * Init functions
  *********************************************************/
 
+#ifdef WIRELESS_NETWORKS
 #include "core/protos/wireless/dispatcher.h"
-#include "core/protos/ip/simple_tcp_dispatcher.h"
+#endif
 
-#include "core/protos/timer.h"
-#include "core/protos/executor.h"
+#ifdef IP_NETWORKS
+#include "protos/ip/simple_tcp_dispatcher.h"
+#endif
+
+#include "protos/timer.h"
+#include "protos/executor.h"
 
 /**
  * Initialize the runtime to hold the protocols the applications need to run

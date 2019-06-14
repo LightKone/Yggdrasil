@@ -16,9 +16,7 @@
 #include <stdlib.h>
 #include <uuid/uuid.h>
 
-#include "Yggdrasil_lowlvl.h"
-#include "core/ygg_runtime.h"
-#include "core/proto_data_struct.h"
+#include "ygg_runtime.h"
 
 typedef enum executor_requests_{
 	EXECUTOR_STOP_PROTOCOL,

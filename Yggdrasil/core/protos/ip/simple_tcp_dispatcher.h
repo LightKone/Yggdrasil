@@ -13,8 +13,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include "Yggdrasil_lowlvl.h"
-#include "core/ygg_runtime.h"
+#include "ygg_runtime.h"
 
 #include "data_structures/generic/list.h"
 

@@ -133,7 +133,7 @@ static bool write_file_to_disk(void* buffer, file_meta* meta) {
         }
 
         writen += n;
-        printf("Written %d out of %d\n", writen, meta->block_size);
+        printf("Written %ld out of %d\n", writen, meta->block_size);
     }
 
 
@@ -152,6 +152,7 @@ static bool write_file_to_disk(void* buffer, file_meta* meta) {
 //    }
 //
 //    return false;
+    return true;
 }
 
 static void request_dissemination(file_meta* meta, block_data_transfer_state* state) {
@@ -243,7 +244,7 @@ static void provide_msg_body(YggRequest* req, block_data_transfer_state* state) 
         free(p_req->req->body);
         free(p_req->req->header);
         free(p_req->header);
-        YggRequest_freePayload(&req);
+        YggRequest_freePayload(req);
         return;
     }
     free(meta.filename);
@@ -344,8 +345,8 @@ proto_def* block_data_transfer_plumtree_init(block_data_transfer_args* args) {
 
     proto_def* data_transfer = create_protocol_definition(PROTO_BLOCK_DATA_TRANSFER, "block data transfer", state, NULL);
 
-    proto_def_add_msg_handler(data_transfer, process_msg);
-    proto_def_add_request_handler(data_transfer, process_request);
+    proto_def_add_msg_handler(data_transfer, (YggMessage_handler) process_msg);
+    proto_def_add_request_handler(data_transfer, (YggRequest_handler) process_request);
 
 
     return data_transfer;

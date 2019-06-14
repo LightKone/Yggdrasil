@@ -1103,11 +1103,21 @@ queue_t* registerApp(app_def* application_definition){
 static int init_ygg_proto_info(Channel* ch) {
 
 	if(ch->type == MAC) {
+#ifdef WIRELESS_NETWORKS
 		if(registerYggProtocol(PROTO_DISPATCH, (Proto_init) &dispatcher_init, (void*) ch) == FAILED)
 			return FAILED;
+#else
+		ygg_log("YGGDRASIL RUNTIME", "FATAL ERROR", "Network configuration does not match the loaded library. Compile with -DWIRELESS_NETWORKS or link yggcore_wireless library");
+		return FAILED;
+#endif
 	}else if(ch->type == IP) {
+#ifdef IP_NETWORKS
 		if(registerYggProtocol(PROTO_DISPATCH, (Proto_init) &simple_tcp_dispatcher_init, (void*) ch) == FAILED)
 			return FAILED;
+#else
+        ygg_log("YGGDRASIL RUNTIME", "FATAL ERROR", "Network configuration does not match the loaded library. Compile with -DIP_NETWORKS or link yggcore_ip library");
+		return FAILED;
+#endif
 	} else
 		return FAILED;
 
@@ -1310,7 +1320,7 @@ static void setupTerminationSignalHandler() {
 }
 
 int ygg_runtime_init_static(NetworkConfig* ntconf) {
-
+/*
 	ygg_loginit(); //Initialize logger
 
 	if(ntconf->type == MAC) {
@@ -1374,6 +1384,8 @@ int ygg_runtime_init_static(NetworkConfig* ntconf) {
 	str2wlan((char*)bcastAddress.data, WLAN_BROADCAST);
 
 	return SUCCESS;
+ */
+    return FAILED;
 }
 
 
@@ -1382,7 +1394,7 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 	ygg_loginit(); //Initialize logger
 
 	if(ntconf->type == MAC) {
-
+#ifdef WIRELESS_NETWORKS
 		if(setupSimpleChannel(&ch, ntconf) != SUCCESS){ //try to configure the physical device and open a socket on it
 			ygg_log("YGGDRASIL RUNTIME", "SETUP ERROR", "Failed to setup channel for communication");
 			ygg_logflush();
@@ -1394,8 +1406,20 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 			ygg_logflush();
 			exit(1);
 		}
+		str2wlan((char*)bcastAddress.data, WLAN_BROADCAST);
+#else
+        ygg_log("YGGDRASIL RUNTIME", "FATAL ERROR", "Network configuration does not match the loaded library. Compile with -DWIRELESS_NETWORKS or link yggcore_wireless library");
+        ygg_logflush();
+        exit(1);
+#endif
 	} else if(ntconf->type == IP) {
+#ifdef IP_NETWORKS
 		setupIpChannel(&ch, ntconf);
+#else
+        ygg_log("YGGDRASIL RUNTIME", "FATAL ERROR", "Network configuration does not match the loaded library. Compile with -DIP_NETWORKS or link yggcore_ip library");
+		ygg_logflush();
+		exit(1);
+#endif
 	}
 
 	setupTerminationSignalHandler();
@@ -1447,8 +1471,6 @@ int ygg_runtime_init(NetworkConfig* ntconf) {
 	pthread_mutex_init(proto_info.lock, &attr);
 
 	proto_info.nprotos = 0;
-
-	str2wlan((char*)bcastAddress.data, WLAN_BROADCAST);
 
 	return SUCCESS;
 }
@@ -1945,7 +1967,12 @@ WLANAddr* getMyWLANAddr() {
 }
 
 char* getMyAddr(char* s2){
+#ifdef WIRELESS_NETWORKS
 	return wlan2asc(&ch.hwaddr, s2);
+#else
+	return NULL;
+#endif
+
 }
 
 void setMyAddr(WLANAddr* addr){
@@ -1962,15 +1989,20 @@ void getmyId(uuid_t id) {
 }
 
 WLANAddr* getBroadcastAddr() {
+#ifdef WIRELESS_NETWORKS
 	WLANAddr* addr = malloc(sizeof(WLANAddr));
 	str2wlan((char*) addr->data, WLAN_BROADCAST);
 	return addr;
+#else
+	return NULL;
+#endif
 }
 
 const char* getChannelIpAddress() {
+#ifdef WIRELESS_NETWORKS
 	if(ch.ip.addr[0] == '\0')
 		set_ip_addr(&ch);
-
+#endif
 	return ch.ip.addr;
 
 }

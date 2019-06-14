@@ -9,7 +9,7 @@
  * (C) 2018
  *********************************************************/
 
-#include "Yggdrasil_lowlvl.h"
+#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 #include "core/ygg_runtime.h"
 #include "protocols/wireless/discovery/fault_detector_discovery.h"
 #include "protocols/wireless/aggregation/MiRAge.h"

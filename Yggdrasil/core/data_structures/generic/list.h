@@ -12,7 +12,7 @@
 #ifndef DATA_STRUCTURES_GENERIC_LIST_H_
 #define DATA_STRUCTURES_GENERIC_LIST_H_
 
-#include "core/utils/utils.h"
+#include "../../utils/utils.h"
 #include <stdlib.h>
 
 typedef struct _list_item {

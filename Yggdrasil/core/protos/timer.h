@@ -19,11 +19,7 @@
 
 #include <time.h>
 
-#include "core/utils/queue.h"
-#include "Yggdrasil_lowlvl.h"
-#include "core/proto_data_struct.h"
-#include "core/ygg_runtime.h"
-
+#include "ygg_runtime.h"
 
 
 proto_def* timer_init(void* args);
