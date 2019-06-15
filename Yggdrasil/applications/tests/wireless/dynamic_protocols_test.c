@@ -42,7 +42,8 @@ int main(int argc, char* argv[]) {
 	ygg_runtime_start();
 
 	multi_root_agg_args* margs = multi_root_agg_args_init(PROTO_FAULT_DETECTOR_DISCOVERY_ID, true, TEST_INPUT, OP_SUM, 2, 0);
-	startProtocol(agg_proto, margs);
+//TODO: start protocol receives char* but argument is a structure
+	//startProtocol(agg_proto, margs);
 	multi_root_agg_args_destroy(margs);
 
 	YggTimer timer;
@@ -72,7 +73,7 @@ int main(int argc, char* argv[]) {
 					agg_proto = PROTO_AGG_FLOW_UPDATING_ID;
 					flow_updating_args* args = flow_updating_args_init(PROTO_FAULT_DETECTOR_DISCOVERY_ID, true, TEST_INPUT, 2, 0);
 					//TODO: start protocol receives char*
-					startProtocol(agg_proto, args);
+					//startProtocol(agg_proto, args);
 					flow_updating_args_destroy(args);
 				} else {
 					stopProtocol(agg_proto);
@@ -80,7 +81,7 @@ int main(int argc, char* argv[]) {
 					agg_proto = PROTO_AGG_MULTI_ROOT;
 					multi_root_agg_args* margs = multi_root_agg_args_init(PROTO_FAULT_DETECTOR_DISCOVERY_ID, true, TEST_INPUT, OP_SUM, 2, 0);
 					//TODO: start protocol receives char*
-					startProtocol(agg_proto, margs);
+					//startProtocol(agg_proto, margs);
 					multi_root_agg_args_destroy(margs);
 				}
 			}

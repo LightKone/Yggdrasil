@@ -444,7 +444,7 @@ static void* simple_tcp_dispatcher_main_loop(main_loop_args* args) {
 	pthread_attr_t patribute;
 	pthread_attr_init(&patribute);
 
-	pthread_create(state->receiver, &patribute, &simple_tcp_dispatcher_receiver, (void*) state);
+	pthread_create(state->receiver, &patribute, (gen_function) &simple_tcp_dispatcher_receiver, (void*) state);
 
 	while(1) {
 		queue_t_elem elem;
@@ -491,7 +491,7 @@ proto_def* simple_tcp_dispatcher_init(Channel* ch, void* args) {
 	state->inbound = list_init();
 	state->outbound = list_init();
 
-	proto_def* dispatcher = create_protocol_definition(PROTO_DISPATCH, "simple tcp dispatcher", (void*) state, (destroy_function) destroy);
+	proto_def* dispatcher = create_protocol_definition(PROTO_DISPATCH, "simple tcp dispatcher", (void*) state, (Proto_destroy) destroy);
 
 	proto_def_add_produced_events(dispatcher, 3/*4?*/); //conn up, conn down, unable to conn, failed to send? :/
 	proto_def_add_consumed_event(dispatcher, PROTO_DISPATCH, TCP_DISPATCHER_CONNECTION_DOWN);

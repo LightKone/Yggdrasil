@@ -59,8 +59,8 @@ typedef struct _shuffle_request {
 	list* kp;
 }shuffle_request;
 
-static bool equal_shuffle_request(shuffle_request* sr, unsigned short seq_num) {
-	return sr->seq_num == seq_num;
+static bool equal_shuffle_request(shuffle_request* sr, unsigned short* seq_num) {
+	return sr->seq_num == *seq_num;
 }
 
 typedef struct __xbot_state {
@@ -243,7 +243,7 @@ static void printf_shuffle_request(shuffle_request* sr, bool refs) {
 		printf("\t\t %s  %d", p->ip.addr, p->ip.port);
 
 		if(refs)
-			printf(" : ref  %d\n", p);
+			printf(" : ref  %p\n", p);
 		else
 			printf("\n");
 	}
@@ -254,7 +254,7 @@ static void printf_shuffle_request(shuffle_request* sr, bool refs) {
 		peer* p = (peer*) it->data;
 		printf("\t\t %s  %d", p->ip.addr, p->ip.port);
 		if(refs)
-			printf(" : ref  %d\n", p);
+			printf(" : ref  %p\n", p);
 		else
 			printf("\n");
 	}
@@ -518,7 +518,7 @@ static list* get_random_list_subset_from_ordered_list(ordered_list* view, short 
 
 static void send_close_request(IPAddr* ip, xbot_state* state) {
 
-	if(list_find_item(state->optimizing, equal_opt_peer_addr, ip)) //lets not close connections that are being optimized ok?
+	if(list_find_item(state->optimizing, (equal_function) equal_opt_peer_addr, ip)) //lets not close connections that are being optimized ok?
 		return;
 
 	YggRequest r;
@@ -536,12 +536,12 @@ static bool add_to_passive_if_not_exists(peer* p, list_item** next_to_drop, xbot
 	if(equal_peer(p, state->self))
 		return false;
 
-	peer* a = ordered_list_find_item(state->active_view, equal_peer, p);
+	peer* a = ordered_list_find_item(state->active_view, (equal_function) equal_peer, p);
 
 	if(a) //p already exists in active view
 		return false;
 
-	a = list_find_item(state->passive_view, equal_peer, p);
+	a = list_find_item(state->passive_view, (equal_function) equal_peer, p);
 	if(a)
 		return false;
 
@@ -551,7 +551,7 @@ static bool add_to_passive_if_not_exists(peer* p, list_item** next_to_drop, xbot
 			n = drop_random_peer(state->passive_view);
 		else {
 			while(!n && *next_to_drop != NULL) {
-				n = list_remove_item(state->passive_view, equal_peer, (*next_to_drop)->data);
+				n = list_remove_item(state->passive_view, (equal_function) equal_peer, (*next_to_drop)->data);
 				*next_to_drop = (*next_to_drop)->next;
 			}
 
@@ -600,14 +600,14 @@ static bool add_to_pending_if_not_exists(peer** p, xbot_state* state) {
 	if(equal_peer(*p, state->self))
 		return false;
 
-	peer* a = list_find_item(state->pending, equal_peer, *p);
+	peer* a = list_find_item(state->pending, (equal_function) equal_peer, *p);
 	if(a)
 		return false;
-	a = ordered_list_find_item(state->active_view, equal_peer, *p);
+	a = ordered_list_find_item(state->active_view, (equal_function) equal_peer, *p);
 	if(a)
 		return false;
 
-	a = list_remove_item(state->passive_view, equal_peer, *p);
+	a = list_remove_item(state->passive_view, (equal_function) equal_peer, *p);
 	if(a && a != *p) {
 		destroy_peer(*p);
 		*p = a;
@@ -623,18 +623,18 @@ static bool add_to_active_if_not_exists(peer** p, xbot_state* state) {
 	if(equal_peer(*p, state->self))
 		return false;
 
-	peer* a = ordered_list_find_item(state->active_view, equal_peer, *p);
+	peer* a = ordered_list_find_item(state->active_view, (equal_function) equal_peer, *p);
 	if(a)
 		return false;
 
 	bool new_node = false;
 
-	a = list_remove_item(state->pending, equal_peer, *p);
+	a = list_remove_item(state->pending, (equal_function) equal_peer, *p);
 	if(a && a != *p) {
 		destroy_peer(*p);
 		*p = a;
 	} else {
-		a = list_remove_item(state->passive_view, equal_peer, *p);
+		a = list_remove_item(state->passive_view, (equal_function) equal_peer, *p);
 		if(a && a != *p) {
 			destroy_peer(*p);
 			*p = a;
@@ -657,22 +657,22 @@ static bool add_to_active_if_not_exists(peer** p, xbot_state* state) {
 static void add_peer_list_to_msg(YggMessage* msg, list* peers) {
 
 	uint16_t size = htons(peers->size);
-	YggMessage_addPayload(msg, &size, sizeof(uint16_t));
+	YggMessage_addPayload(msg, (char*) &size, sizeof(uint16_t));
 
 	for(list_item* it = peers->head; it != NULL; it = it->next) {
 		struct in_addr addr;
 		if(!inet_aton(((peer*)it->data)->ip.addr, &addr))
 			printf("Error on inet_aton (add peer list to msg) %s\n", ((peer*)it->data)->ip.addr);
-		YggMessage_addPayload(msg, &addr, sizeof(struct in_addr));
+		YggMessage_addPayload(msg, (char*) &addr, sizeof(struct in_addr));
 		uint16_t port = htons(((peer*)it->data)->ip.port);
-		YggMessage_addPayload(msg, &port, sizeof(uint16_t));
+		YggMessage_addPayload(msg, (char*) &port, sizeof(uint16_t));
 	}
 }
 
 static void init_msg_header(YggMessage* msg, xbot_msg_type type, short proto_id, peer* dest, peer* self) {
 	YggMessage_initIp(msg, proto_id, dest->ip.addr, dest->ip.port);
 	uint16_t code = codify(type);
-	YggMessage_addPayload(msg, &code, sizeof(uint16_t));
+	YggMessage_addPayload(msg, (char*) &code, sizeof(uint16_t));
 }
 
 
@@ -693,14 +693,14 @@ static void send_shuffle_reply(xbot_state* state, peer* dest, peer* self, unsign
 	init_msg_header(&msg, SHUFFLEREPLY, proto_id, dest, self);
 
 	uint16_t seq = htons(seq_num);
-	YggMessage_addPayload(&msg, &seq, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &seq, sizeof(uint16_t));
 
 	add_peer_list_to_msg(&msg, k_p);
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
 
-	if(!ordered_list_find_item(state->active_view, equal_peer_addr, &dest->ip))
+	if(!ordered_list_find_item(state->active_view, (equal_function) equal_peer_addr, &dest->ip))
 		send_close_request(&dest->ip, state);
 
 }
@@ -734,17 +734,17 @@ static void send_shuffle(peer* dest, peer* self, shuffle_request* sr, short time
 	init_msg_header(&msg, SHUFFLE, proto_id, dest, self);
 
 	uint16_t ttl = htons(time_to_live);
-	YggMessage_addPayload(&msg, &ttl, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &ttl, sizeof(uint16_t));
 
 	struct in_addr addr;
 	inet_aton(self->ip.addr, &addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(self->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	uint16_t seq = htons(sr->seq_num);
-	YggMessage_addPayload(&msg, &seq, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &seq, sizeof(uint16_t));
 
 	add_peer_list_to_msg(&msg, sr->ka);
 	add_peer_list_to_msg(&msg, sr->kp);
@@ -768,7 +768,7 @@ static void send_hello_neighbour_reply(peer* dest, peer* self, bool reply, short
 	init_msg_header(&msg, HELLONEIGHREPLY, proto_id, dest, self);
 
 	uint16_t rep = htons(reply);
-	YggMessage_addPayload(&msg, &rep, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &rep, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -789,7 +789,7 @@ static void send_hello_neighbour(peer* dest, peer* self, bool prio, short proto_
 
 	uint16_t pr = htons(prio); //booleans are just numbers...
 
-	YggMessage_addPayload(&msg, &pr, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &pr, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -825,14 +825,14 @@ static void send_forward_join(peer* dest, peer* newNode, short time_to_live, pee
 	init_msg_header(&msg, FORWARDJOIN, proto_id, dest, self);
 
 	uint16_t ttl = htons(time_to_live);
-	YggMessage_addPayload(&msg, &ttl, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &ttl, sizeof(uint16_t));
 	struct in_addr addr;
 	if(!inet_aton(newNode->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (forward join) %s\n", newNode->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(newNode->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -882,19 +882,19 @@ static void process_join(YggMessage* msg, void* ptr, xbot_state* state) {
 	ygg_log("XBOT", "DEBUG", debug_msg);
 #endif
 
-	peer* p = ordered_list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = ordered_list_find_item(state->active_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	bool new_node = false;
 	if(p)
 		return; //report error?
 
-	p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+	p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(is_active_full(state))
 		drop_random_from_active_view(state);
 
 	if(!p) //it was not in pending
-		p = list_remove_item(state->passive_view, equal_peer_addr, &msg->header.src_addr.ip);
+		p = list_remove_item(state->passive_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(!p) { //it was not in passive
 		p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 		new_node = true;
@@ -925,7 +925,7 @@ static void process_joinreply(YggMessage* msg, void* ptr, xbot_state* state) {
 #endif
 
 	//remove from pending, add to active, send notification
-	peer* p = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(p) {
 		bool ok = add_to_active_if_not_exists(&p, state);
 		if(!ok) {
@@ -935,7 +935,7 @@ static void process_joinreply(YggMessage* msg, void* ptr, xbot_state* state) {
 
 		send_notification(OVERLAY_NEIGHBOUR_UP, state->proto_id, p);
 	} else {
-		if(!ordered_list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip)) { //if not in active, then send disconnect
+		if(!ordered_list_find_item(state->active_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip)) { //if not in active, then send disconnect
 			p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 			send_disconnect(p, state->self, state->proto_id);
 			destroy_peer(p);
@@ -999,7 +999,7 @@ static void process_disconnect(YggMessage* msg, void* ptr, xbot_state* state) {
 	sprintf(debug_msg, "processing disconnect of %s  %d\n", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	ygg_log("XBOT", "DEBUG", debug_msg);
 #endif
-	peer* p = ordered_list_remove_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = ordered_list_remove_item(state->active_view, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(p) {
 		send_notification(OVERLAY_NEIGHBOUR_DOWN, state->proto_id, p);
@@ -1062,11 +1062,11 @@ static bool make_space(xbot_state* state, peer* p, list_item** next_to_drop, int
 
 	bool remove_peer = false;
 
-	if(ordered_list_find_item(state->active_view, equal_peer, p))
+	if(ordered_list_find_item(state->active_view, (equal_function) equal_peer, p))
 		remove_peer = true;
-	if(!remove_peer && list_find_item(state->pending, equal_peer, p))
+	if(!remove_peer && list_find_item(state->pending, (equal_function) equal_peer, p))
 		remove_peer = true;
-	if(!remove_peer && !list_find_item(state->passive_view, equal_peer, p)){
+	if(!remove_peer && !list_find_item(state->passive_view, (equal_function) equal_peer, p)){
 		if(state->passive_view->size + req_sapce > state->max_passive) {
 
 			peer* n = NULL;
@@ -1074,7 +1074,7 @@ static bool make_space(xbot_state* state, peer* p, list_item** next_to_drop, int
 				n = drop_random_peer(state->passive_view);
 			else {
 				while(!n && *next_to_drop != NULL) {
-					n = list_remove_item(state->passive_view, equal_peer, (*next_to_drop)->data);
+					n = list_remove_item(state->passive_view, (equal_function) equal_peer, (*next_to_drop)->data);
 					*next_to_drop = (*next_to_drop)->next;
 				}
 
@@ -1248,7 +1248,9 @@ static void process_shufflereply(YggMessage* msg, void* ptr, xbot_state* state) 
 	uint16_t seq;
 	ptr = YggMessage_readPayload(msg, ptr, &seq, sizeof(uint16_t));
 
-	shuffle_request* sr = list_remove_item(state->active_shuffles, equal_shuffle_request, ntohs(seq));
+	unsigned short seq_h = ntohs(seq);
+
+	shuffle_request* sr = list_remove_item(state->active_shuffles, (equal_function) equal_shuffle_request, &seq_h);
 
 	if(sr) {
 
@@ -1397,7 +1399,7 @@ static void process_helloneighreply(YggMessage* msg, void* ptr, xbot_state* stat
 			setupTimer(&t);
 		}
 
-		peer* c = list_remove_item(state->pending, equal_peer_addr, &msg->header.src_addr.ip);
+		peer* c = list_remove_item(state->pending, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 		if(c) {
 			destroy_peer(n);
 			n = c;
@@ -1433,9 +1435,9 @@ static void send_optimization(peer* dest, peer* old, peer* self, unsigned short 
 	if(!inet_aton(old->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send optimization) %s\n", old->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(old->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -1455,24 +1457,24 @@ static void send_optimization_reply(peer* dest, bool answer, peer* old, peer* di
 	init_msg_header(&msg, OPTIMIZATIONREPLY, proto_id, dest, self);
 
 	uint16_t answer_t = htons(answer);
-	YggMessage_addPayload(&msg, &answer_t, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &answer_t, sizeof(uint16_t));
 
 
 	struct in_addr addr;
 	if(!inet_aton(old->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send optimization reply) %s\n", old->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(old->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char* )&port, sizeof(uint16_t));
 
 	if(disconnected) {
 		if(!inet_aton(disconnected->ip.addr, &addr)) //this could already be converted..
 			printf("Error on inet_aton (send optimization reply) %s\n", disconnected->ip.addr);
 
-		YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+		YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 		port = htons(disconnected->ip.port);
-		YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+		YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 	}
 
 
@@ -1498,17 +1500,17 @@ static void send_replace(peer* dest, peer* old, peer* initiator, peer* self, uns
 	if(!inet_aton(old->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send replace) %s\n", old->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(old->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	//add initiator
 	if(!inet_aton(initiator->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send replace) %s\n", initiator->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	port = htons(initiator->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -1529,7 +1531,7 @@ static void send_replace_reply(peer* dest, bool answer, peer* initiator, peer* o
 	init_msg_header(&msg, REPLACEREPLY, proto_id, dest, self);
 
 	uint16_t answer_t = htons(answer);
-	YggMessage_addPayload(&msg, &answer_t, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &answer_t, sizeof(uint16_t));
 
 
 	//add initiator
@@ -1537,18 +1539,18 @@ static void send_replace_reply(peer* dest, bool answer, peer* initiator, peer* o
 	if(!inet_aton(initiator->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send replace reply) %s\n", initiator->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(initiator->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 
 	//add old
 	if(!inet_aton(old->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send replace reply) %s\n", old->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	port = htons(old->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 
 
@@ -1574,17 +1576,17 @@ static void send_switch(peer* dest, peer* initiator, peer* candidate, peer* self
 	if(!inet_aton(initiator->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send switch) %s\n", initiator->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(initiator->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	//add candidate
 	if(!inet_aton(candidate->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send switch) %s\n", candidate->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	port = htons(candidate->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -1603,25 +1605,25 @@ static void send_switch_reply(peer* dest, bool answer, peer* initiator, peer* ca
 	init_msg_header(&msg, SWITCHREPLY, proto_id, dest, self);
 
 	uint16_t answer_t = htons(answer);
-	YggMessage_addPayload(&msg, &answer_t, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &answer_t, sizeof(uint16_t));
 
 	//add initiator
 	struct in_addr addr;
 	if(!inet_aton(initiator->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send switch reply) %s\n", initiator->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(initiator->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 
 	//add candidate
 	if(!inet_aton(candidate->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (send switch reply) %s\n", candidate->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	port = htons(candidate->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 
 	dispatch(&msg);
@@ -1648,7 +1650,7 @@ static void send_disconnect_wait(peer* dest, peer* self, unsigned short proto_id
  **********************************************************/
 
 static bool can_add_to_active_view(peer* p, xbot_state* state) {
-	return (!equal_peer(p, state->self) && !ordered_list_find_item(state->active_view, equal_peer, p) && !list_find_item(state->pending, equal_peer, p));
+	return (!equal_peer(p, state->self) && !ordered_list_find_item(state->active_view, (equal_function) equal_peer, p) && !list_find_item(state->pending, (equal_function) equal_peer, p));
 }
 
 //src = initiator; dest = candidate
@@ -1706,7 +1708,7 @@ static void process_optimizationreply(YggMessage* msg, void* ptr, xbot_state* st
 	sprintf(debug_msg, "processing optimization reply of %s  %d  answer: %d\n", msg->header.src_addr.ip.addr,  msg->header.src_addr.ip.port, answer);
 	ygg_log("XBOT", "DEBUG", debug_msg);
 #endif
-	opt_peer* candidate = list_remove_item(state->optimizing, equal_opt_peer_addr, &msg->header.src_addr.ip);
+	opt_peer* candidate = list_remove_item(state->optimizing, (equal_function)equal_opt_peer_addr, &msg->header.src_addr.ip);
 	if(!candidate) {
 		candidate = malloc(sizeof(opt_peer));
 		candidate->p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
@@ -1723,7 +1725,7 @@ static void process_optimizationreply(YggMessage* msg, void* ptr, xbot_state* st
 		memcpy(ip.addr, ip_addr, strlen(ip_addr));
 		ip.port = ntohs(port);
 		peer* old = NULL;
-		if((old = ordered_list_remove_item(state->active_view, equal_peer_addr, &ip))) {
+		if((old = ordered_list_remove_item(state->active_view, (equal_function)equal_peer_addr, &ip))) {
 			ptr = YggMessage_readPayload(msg, ptr, &addr, sizeof(struct in_addr));
 			if(ptr) {
 				//send_disconnect_wait(old, state->self, state->proto_id); simply wait for disconnect wait of old
@@ -1773,7 +1775,7 @@ static void process_replace(YggMessage* msg, void* ptr, xbot_state* state) {
 
 
 	peer* old = create_peer(ip_addr, ntohs(port));
-	peer* p = list_find_item(state->passive_view, equal_peer, old);
+	peer* p = list_find_item(state->passive_view, (equal_function)equal_peer, old);
 
 	ptr = YggMessage_readPayload(msg, ptr, &addr, sizeof(struct in_addr));
 	ptr = YggMessage_readPayload(msg, ptr, &port, sizeof(uint16_t));
@@ -1782,7 +1784,7 @@ static void process_replace(YggMessage* msg, void* ptr, xbot_state* state) {
 
 	peer* initiator = create_peer(ip_addr, ntohs(port));
 
-	peer* candidate = ordered_list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* candidate = ordered_list_find_item(state->active_view, (equal_function)equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(candidate && p) {
 		if(!isBetter(candidate, p, state)) {
@@ -1822,7 +1824,7 @@ static void process_replacereply(YggMessage* msg, void* ptr, xbot_state* state) 
 	memcpy(ip.addr, ip_addr, strlen(ip_addr));
 	ip.port = ntohs(port);
 
-	opt_peer* initiator = list_remove_item(state->optimizing, equal_opt_peer_addr, &ip); //if this NULL ??? (should not be, if correct)
+	opt_peer* initiator = list_remove_item(state->optimizing, (equal_function)equal_opt_peer_addr, &ip); //if this NULL ??? (should not be, if correct)
 
 	ptr = YggMessage_readPayload(msg, ptr, &addr, sizeof(struct in_addr));
 	ptr = YggMessage_readPayload(msg, ptr, &port, sizeof(uint16_t));
@@ -1834,7 +1836,7 @@ static void process_replacereply(YggMessage* msg, void* ptr, xbot_state* state) 
 	bool up = false;
 
 	if(answer) {
-		disconnected = ordered_list_remove_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+		disconnected = ordered_list_remove_item(state->active_view, (equal_function)equal_peer_addr, &msg->header.src_addr.ip);
 		if(disconnected) {
 			add_to_passive_if_not_exists(disconnected, NULL, state);
 			send_notification(OVERLAY_NEIGHBOUR_DOWN, state->proto_id, disconnected);
@@ -1848,7 +1850,7 @@ static void process_replacereply(YggMessage* msg, void* ptr, xbot_state* state) 
 
 	}
 	if(!disconnected)
-		disconnected = ordered_list_find_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+		disconnected = ordered_list_find_item(state->active_view, (equal_function)equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(initiator)
 		send_optimization_reply(initiator->p, answer, old, disconnected, state->self, state->proto_id);
@@ -1899,7 +1901,7 @@ static void process_switch(YggMessage* msg, void* ptr, xbot_state* state) {
 	peer* disconnected = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 	bool answer = false;
 
-	if((can_add_to_active_view(disconnected, state) && (initiator = ordered_list_remove_item(state->active_view, equal_peer_addr, &ip)))) {
+	if((can_add_to_active_view(disconnected, state) && (initiator = ordered_list_remove_item(state->active_view, (equal_function)equal_peer_addr, &ip)))) {
 
 		send_disconnect_wait(initiator, state->self, state->proto_id);
 		if(!add_to_passive_if_not_exists(initiator, NULL, state))
@@ -1967,7 +1969,7 @@ static void process_switchreply(YggMessage* msg, void* ptr, xbot_state* state) {
 	peer* candidate = NULL;
 
 	//old should not be NULL
-	opt_peer* old = list_remove_item(state->optimizing, equal_opt_peer_addr, &msg->header.src_addr.ip);
+	opt_peer* old = list_remove_item(state->optimizing, (equal_function)equal_opt_peer_addr, &msg->header.src_addr.ip);
 	if(!old) {
 		old = malloc(sizeof(opt_peer));
 		old->p = create_peer(msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
@@ -1976,7 +1978,7 @@ static void process_switchreply(YggMessage* msg, void* ptr, xbot_state* state) {
 	bool down = false;
 
 	if(answer) {
-		candidate = ordered_list_remove_item(state->active_view, equal_peer_addr, &ip);
+		candidate = ordered_list_remove_item(state->active_view, (equal_function)equal_peer_addr, &ip);
 		if(candidate) {
 			add_to_passive_if_not_exists(candidate, NULL, state);
 			down = true;
@@ -1987,7 +1989,7 @@ static void process_switchreply(YggMessage* msg, void* ptr, xbot_state* state) {
 			destroy_peer(old->p);
 	}
 	if(!candidate)
-		candidate = ordered_list_find_item(state->active_view, equal_peer_addr, &ip);
+		candidate = ordered_list_find_item(state->active_view, (equal_function)equal_peer_addr, &ip);
 
 	if(candidate)
 		send_replace_reply(candidate, answer, initiator, old->p, state->self, state->proto_id);
@@ -2021,7 +2023,7 @@ static void process_disconnectwait(YggMessage* msg, void* ptr, xbot_state* state
 	ygg_log("XBOT", "DEBUG", debug_msg);
 #endif
 	send_close_request(&msg->header.src_addr.ip, state);
-	peer* p = ordered_list_remove_item(state->active_view, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = ordered_list_remove_item(state->active_view, (equal_function)equal_peer_addr, &msg->header.src_addr.ip);
 	if(p) {
 		state->waiting ++;
 		if(!add_to_passive_if_not_exists(p, NULL, state)) {
@@ -2204,7 +2206,7 @@ static void process_failed(YggEvent* ev, xbot_state* state) {
 	void* ptr = YggEvent_readPayload(ev, NULL, ip.addr, 16);
 	ptr = YggEvent_readPayload(ev, ptr, &ip.port, sizeof(unsigned short));
 
-	peer* p = ordered_list_remove_item(state->active_view, equal_peer_addr, &ip);
+	peer* p = ordered_list_remove_item(state->active_view, (equal_function)equal_peer_addr, &ip);
 	opt_peer* op = NULL;
 
 	if(p) {
@@ -2228,10 +2230,10 @@ static void process_failed(YggEvent* ev, xbot_state* state) {
 		state->backoff_s = state->original_backoff_s;
 		state->backoff_ns = state->original_backoff_ns;
 
-	} else if(ev->notification_id == TCP_DISPATCHER_UNABLE_TO_CONNECT && (op = list_remove_item(state->optimizing, equal_opt_peer_addr, &ip))) {
+	} else if(ev->notification_id == TCP_DISPATCHER_UNABLE_TO_CONNECT && (op = list_remove_item(state->optimizing, (equal_function)equal_opt_peer_addr, &ip))) {
 
 		destroy_opt_peer(op);
-		p = list_remove_item(state->passive_view, equal_peer_addr, &ip);
+		p = list_remove_item(state->passive_view, (equal_function)equal_peer_addr, &ip);
 		if(p) {
 			send_cancel_monitor_request(state, p);
 			destroy_peer(p);
@@ -2239,7 +2241,7 @@ static void process_failed(YggEvent* ev, xbot_state* state) {
 
 	}
 	else if(ev->notification_id == TCP_DISPATCHER_UNABLE_TO_CONNECT) {
-		p = list_remove_item(state->pending, equal_peer_addr, &ip);
+		p = list_remove_item(state->pending, (equal_function)equal_peer_addr, &ip);
 		if(p) {
 			send_cancel_monitor_request(state, p);
 			destroy_peer(p);
@@ -2305,18 +2307,18 @@ static void process_request(YggRequest* req, xbot_state* state) {
 	else
 		normalized = hash(&state->self->ip, &ip)%100;
 
-	peer* p = ordered_list_find_item(state->active_view, equal_peer_addr, &ip);
+	peer* p = ordered_list_find_item(state->active_view, (equal_function)equal_peer_addr, &ip);
 	if(p) {
 
 		p->score = normalized;
-		ordered_list_update_item(state->active_view, equal_peer, p);
+		ordered_list_update_item(state->active_view, (equal_function)equal_peer, p);
 	} else {
-		p = list_find_item(state->passive_view, equal_peer_addr, &ip);
+		p = list_find_item(state->passive_view, (equal_function) equal_peer_addr, &ip);
 		if(p) {
 
 			p->score = normalized;
 		}else {
-			p = list_find_item(state->pending, equal_peer_addr, &ip);
+			p = list_find_item(state->pending, (equal_function)equal_peer_addr, &ip);
 			if(p) {
 
 				p->score = normalized;
@@ -2372,7 +2374,7 @@ proto_def* xbot_init(void* args) {
 	state->self = malloc(sizeof(peer));
 	getIpAddr(&state->self->ip);
 
-	state->active_view = ordered_list_init(compare_peer_inverted_score);
+	state->active_view = ordered_list_init((compare_function)compare_peer_inverted_score);
 	state->passive_view = list_init();
 	state->pending = list_init();
 
@@ -2412,7 +2414,7 @@ proto_def* xbot_init(void* args) {
 	//no destroy for now
 	proto_def* xbot = create_protocol_definition(state->proto_id, "Xbot", state, NULL);
 
-	proto_def_add_protocol_main_loop(xbot, xbot_main_loop);
+	proto_def_add_protocol_main_loop(xbot, (Proto_main_loop) xbot_main_loop);
 
 	proto_def_add_consumed_event(xbot, PROTO_DISPATCH, TCP_DISPATCHER_CONNECTION_DOWN);
 	proto_def_add_consumed_event(xbot, PROTO_DISPATCH, TCP_DISPATCHER_UNABLE_TO_CONNECT);

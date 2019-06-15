@@ -81,6 +81,8 @@ typedef struct _main_loop_args {
  * Yggdrasil Defined types
  ********************************************************/
 
+typedef void* (*gen_function)(void*);
+
 typedef short (*YggMessage_handler)(YggMessage*, void*);
 typedef short (*YggTimer_handler)(YggTimer*, void*);
 typedef short (*YggEvent_handler)(YggEvent*, void*);

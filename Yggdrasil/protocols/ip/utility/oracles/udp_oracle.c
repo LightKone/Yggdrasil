@@ -55,8 +55,8 @@ static void destroy_measurement(to_measure* m) {
 	free(m);
 }
 
-static bool equal_seq_num(to_measure* m, unsigned short seq_num) {
-	return m->seq_num == seq_num;
+static bool equal_seq_num(to_measure* m, unsigned short* seq_num) {
+	return m->seq_num == *seq_num;
 }
 
 static bool equal_peer(to_measure* m, IPAddr* addr) {
@@ -103,7 +103,7 @@ static void add_to_measure(udp_oracle_state* state, YggRequest* req) {
 	void* ptr = YggRequest_readPayload(req, NULL, ip.addr, 16);
 	ptr = YggRequest_readPayload(req, ptr, &ip.port, sizeof(unsigned short));
 
-	to_measure* m = list_find_item(state->measurements, equal_peer, &ip);
+	to_measure* m = list_find_item(state->measurements, (equal_function) equal_peer, &ip);
 
 	if(!m) {
 		m = malloc(sizeof(to_measure));
@@ -122,7 +122,7 @@ static void add_to_measure(udp_oracle_state* state, YggRequest* req) {
 		YggTimer_addPayload(&m->timer, &m->ip.port, sizeof(unsigned short));
 		setupTimer(&m->timer);
 	} else {
-		request* r = list_find_item(m->requests, equal_request, req);
+		request* r = list_find_item(m->requests, (equal_function) equal_request, req);
 		if(!r) {
 			r = create_request(req, ptr);
 			list_add_item_to_tail(m->requests, r);
@@ -137,15 +137,15 @@ static void cancel_measurent(udp_oracle_state* state, YggRequest* req) {
 	void* ptr = YggRequest_readPayload(req, NULL, ip.addr, 16);
 	ptr = YggRequest_readPayload(req, ptr, &ip.port, sizeof(unsigned short)); //this needs to be the udp port
 
-	to_measure* m = list_find_item(state->measurements, equal_peer, &ip);
+	to_measure* m = list_find_item(state->measurements, (equal_function) equal_peer, &ip);
 	if(m) {
 		req->proto_dest = req->proto_origin;
-		request* r = list_remove_item(m->requests, equal_request, req);
+		request* r = list_remove_item(m->requests, (equal_function) equal_request, req);
 		if(r) {
 			destroy_request(r);
 		}
 		if(m->requests->size == 0) {
-			m = list_remove_item(state->measurements, equal_peer, &ip);
+			m = list_remove_item(state->measurements, (equal_function) equal_peer, &ip);
 			cancelTimer(&m->timer);
 			destroy_measurement(m);
 		}
@@ -191,7 +191,7 @@ static void do_measurement(udp_oracle_state* state, uint16_t* buffer) {
 
 	unsigned short seq_num = ntohs(buffer[1]);
 
-	to_measure* m = list_find_item(state->measurements, equal_seq_num, seq_num);
+	to_measure* m = list_find_item(state->measurements, (equal_function) equal_seq_num, (void*) &seq_num);
 	if(!m) {
 		ygg_log("ORACLE", "WARNING", "no measurement for the given message");
 		return;
@@ -250,7 +250,7 @@ static void handle_pipe(udp_oracle_state* state) {
 		IPAddr ip;
 		void* ptr = YggTimer_readPayload(&timer, NULL, ip.addr, 16);
 		YggTimer_readPayload(&timer, ptr, &ip.port, sizeof(unsigned short));
-		to_measure* m = list_find_item(state->measurements, equal_peer, &ip);
+		to_measure* m = list_find_item(state->measurements, (equal_function) equal_peer, &ip);
 		if(m) {
 			send_ping(state, m);
 		}
@@ -295,7 +295,7 @@ static void udp_oracle_main_loop(main_loop_args* args) {
 	pthread_attr_t patribute;
 	pthread_attr_init(&patribute);
 
-	pthread_create(&worker, &patribute, &udp_oracle_worker, (void*) state);
+	pthread_create(&worker, &patribute, (gen_function) &udp_oracle_worker, (void*) state);
 
 	while(true) {
 		queue_t_elem e;
@@ -353,7 +353,7 @@ proto_def* udp_oracle_init(void* args) {
 
 
 	proto_def* oracle = create_protocol_definition(state->proto_id, "UDP Oracle", state, NULL);
-	proto_def_add_protocol_main_loop(oracle, udp_oracle_main_loop);
+	proto_def_add_protocol_main_loop(oracle, (Proto_main_loop)udp_oracle_main_loop);
 
 
 	return oracle;

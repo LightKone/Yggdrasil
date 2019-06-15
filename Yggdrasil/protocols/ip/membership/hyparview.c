@@ -139,8 +139,8 @@ static void destroy_peer(peer* p);
 
 static void send_disconnect(peer* dest, peer* self, short proto_id);
 
-static bool equal_shuffle_request(shuffle_request* sr, unsigned short seq_num) {
-	return sr->seq_num == seq_num;
+static bool equal_shuffle_request(shuffle_request* sr, unsigned short* seq_num) {
+	return sr->seq_num == *seq_num;
 }
 
 static bool equal_peer(peer* p1, peer* p2) {
@@ -425,22 +425,22 @@ static bool add_to_active_if_not_exists(hyparview_state* state, list* active_vie
 static void add_peer_list_to_msg(YggMessage* msg, list* peers) {
 
 	uint16_t size = htons(peers->size);
-	YggMessage_addPayload(msg, &size, sizeof(uint16_t));
+	YggMessage_addPayload(msg, (char*) &size, sizeof(uint16_t));
 
 	for(list_item* it = peers->head; it != NULL; it = it->next) {
 		struct in_addr addr;
 		if(!inet_aton(((peer*)it->data)->ip.addr, &addr))
 			printf("Error on inet_aton (add peer list to msg) %s\n", ((peer*)it->data)->ip.addr);
-		YggMessage_addPayload(msg, &addr, sizeof(struct in_addr));
+		YggMessage_addPayload(msg, (char*) &addr, sizeof(struct in_addr));
 		uint16_t port = htons(((peer*)it->data)->ip.port);
-		YggMessage_addPayload(msg, &port, sizeof(uint16_t));
+		YggMessage_addPayload(msg, (char*) &port, sizeof(uint16_t));
 	}
 }
 
 static void init_msg_header(YggMessage* msg, hyparview_msg_type type, short proto_id, peer* dest, peer* self) {
 	YggMessage_initIp(msg, proto_id, dest->ip.addr, dest->ip.port);
 	uint16_t code = codify(type);
-	YggMessage_addPayload(msg, &code, sizeof(uint16_t));
+	YggMessage_addPayload(msg, (char*) &code, sizeof(uint16_t));
 }
 
 static void send_shuffle_reply(peer* dest, peer* self, unsigned short seq_num, list* k_p, short proto_id) {
@@ -454,7 +454,7 @@ static void send_shuffle_reply(peer* dest, peer* self, unsigned short seq_num, l
 	init_msg_header(&msg, SHUFFLEREPLY, proto_id, dest, self);
 
 	uint16_t seq = htons(seq_num);
-	YggMessage_addPayload(&msg, &seq, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &seq, sizeof(uint16_t));
 
 	add_peer_list_to_msg(&msg, k_p);
 
@@ -492,17 +492,17 @@ static void send_shuffle(peer* dest, peer* self, shuffle_request* sr, short time
 	init_msg_header(&msg, SHUFFLE, proto_id, dest, self);
 
 	uint16_t ttl = htons(time_to_live);
-	YggMessage_addPayload(&msg, &ttl, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &ttl, sizeof(uint16_t));
 
 	struct in_addr addr;
 	inet_aton(self->ip.addr, &addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(self->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	uint16_t seq = htons(sr->seq_num);
-	YggMessage_addPayload(&msg, &seq, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &seq, sizeof(uint16_t));
 
 	add_peer_list_to_msg(&msg, sr->ka);
 	add_peer_list_to_msg(&msg, sr->kp);
@@ -524,7 +524,7 @@ static void send_hello_neighbour_reply(peer* dest, peer* self, bool reply, short
 	init_msg_header(&msg, HELLONEIGHREPLY, proto_id, dest, self);
 
 	uint16_t rep = htons(reply);
-	YggMessage_addPayload(&msg, &rep, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &rep, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -543,7 +543,7 @@ static void send_hello_neighbour(peer* dest, peer* self, bool prio, short proto_
 
 	uint16_t pr = htons(prio); //booleans are just numbers...
 
-	YggMessage_addPayload(&msg, &pr, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &pr, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -577,14 +577,14 @@ static void send_forward_join(peer* dest, peer* newNode, short time_to_live, pee
 	init_msg_header(&msg, FORWARDJOIN, proto_id, dest, self);
 
 	uint16_t ttl = htons(time_to_live);
-	YggMessage_addPayload(&msg, &ttl, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &ttl, sizeof(uint16_t));
 	struct in_addr addr;
 	if(!inet_aton(newNode->ip.addr, &addr)) //this could already be converted..
 		printf("Error on inet_aton (forward join) %s\n", newNode->ip.addr);
 
-	YggMessage_addPayload(&msg, &addr, sizeof(struct in_addr));
+	YggMessage_addPayload(&msg, (char*) &addr, sizeof(struct in_addr));
 	uint16_t port = htons(newNode->ip.port);
-	YggMessage_addPayload(&msg, &port, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &port, sizeof(uint16_t));
 
 	dispatch(&msg);
 	YggMessage_freePayload(&msg);
@@ -975,7 +975,9 @@ static void process_shufflereply(YggMessage* msg, void* ptr, hyparview_state* st
 	uint16_t seq;
 	ptr = YggMessage_readPayload(msg, ptr, &seq, sizeof(uint16_t));
 
-	shuffle_request* sr = list_remove_item(state->active_shuffles, (equal_function) equal_shuffle_request, ntohs(seq));
+	unsigned short seq_h = ntohs(seq);
+
+	shuffle_request* sr = list_remove_item(state->active_shuffles, (equal_function) equal_shuffle_request, &seq_h);
 
 	if(sr) {
 
@@ -1369,7 +1371,7 @@ proto_def* hyparview_init(void* args) {
 	proto_def* hyparview = create_protocol_definition(state->proto_id, "HyParView", state, NULL);
 
 
-	proto_def_add_protocol_main_loop(hyparview, hyparview_main_loop);
+	proto_def_add_protocol_main_loop(hyparview, (Proto_main_loop) hyparview_main_loop);
 
 	proto_def_add_consumed_event(hyparview, PROTO_DISPATCH, TCP_DISPATCHER_CONNECTION_DOWN);
 	proto_def_add_consumed_event(hyparview, PROTO_DISPATCH, TCP_DISPATCHER_UNABLE_TO_CONNECT);

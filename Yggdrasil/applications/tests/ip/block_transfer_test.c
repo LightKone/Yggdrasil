@@ -255,7 +255,7 @@ int main(int argc, char* argv[]) {
     plumtree_args_destroy(p);
 
     block_data_transfer_args* dt = block_data_transfer_args_init(PROTO_PLUMTREE, PLUMTREE_BROADCAST_REQUEST, dir);
-    registerProtocol(PROTO_BLOCK_DATA_TRANSFER, block_data_transfer_init, dt);
+    registerProtocol(PROTO_BLOCK_DATA_TRANSFER, (Proto_init) block_data_transfer_init, dt);
     block_data_transfer_args_destroy(dt);
 
 
@@ -273,7 +273,7 @@ int main(int argc, char* argv[]) {
 
     if(serve_command) {
         pthread_t t;
-        pthread_create(&t, NULL, handle_client_requests, NULL);
+        pthread_create(&t, NULL, (gen_function) handle_client_requests, NULL);
     }
 
 

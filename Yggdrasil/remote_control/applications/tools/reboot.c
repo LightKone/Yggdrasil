@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 			//Success
 			char* reply = getResponse(sock);
 			if(reply != NULL) {
-				printf(reply);
+				printf("%s", reply);
 				free(reply);
 				close(sock);
 				return 0;

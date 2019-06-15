@@ -1308,8 +1308,8 @@ static void handle_queue_request() {
 		//Most likely a request from a client that is being handled by the control_protocol_server
 		YggRequest* req = &elem.data.request;
 		if(req->request == REQUEST) {
+            tree_command* cmd = NULL;
 			switch(req->request_type) {
-			tree_command* cmd = NULL;
 			case SETUP:
 				ygg_log_stdout("CONTROL_COMMAND_TREE", "YGG_REQUEST", "SETUP");
 				cmd = init_command_header(SETUP);

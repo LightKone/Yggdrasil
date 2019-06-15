@@ -47,8 +47,8 @@ typedef struct __lazy_queue_item {
 	int mid; //mid can be calculate through hash functions
 }lazy_queue_item;
 
-static bool equal_mid(lazy_queue_item* lqi, int mid) {
-	return lqi->mid == mid;
+static bool equal_mid(lazy_queue_item* lqi, int* mid) {
+	return lqi->mid == *mid;
 }
 
 static bool equal_node(lazy_queue_item* lqi, peer* p) {
@@ -72,8 +72,8 @@ typedef struct __mid {
 	struct timespec received;
 }message_item;
 
-static bool equal_message_item(message_item* m, int mid){
-	return m->hash == mid;
+static bool equal_message_item(message_item* m, int* mid){
+	return m->hash == *mid;
 }
 
 static message_item* create_msg_item(int mid, unsigned short requestor_id, void* msg_payload, unsigned short msg_length) {
@@ -103,8 +103,8 @@ typedef struct __timer {
 	YggTimer* t;
 }timeouts;
 
-static bool equal_timer(timeouts* t, int mid) {
-	return t->mid == mid;
+static bool equal_timer(timeouts* t, int* mid) {
+	return t->mid == *mid;
 }
 
 typedef struct __plumtree_state {
@@ -146,7 +146,7 @@ static void print_tree(plumtree_state* state) {
 }
 
 static void cancel_timer(int mid, plumtree_state* state) {
-	timeouts* t = list_remove_item(state->timers, equal_timer, mid);
+	timeouts* t = list_remove_item(state->timers, (equal_function) equal_timer, &mid);
 	if(t) {
 		cancelTimer(t->t);
 		YggTimer_freePayload(t->t);
@@ -218,7 +218,7 @@ static int generate_mid(void* msg_payload, unsigned short msg_payload_size, unsi
 static void init_msg_header(YggMessage* msg, plumtree_msg_types type, peer* dest, unsigned proto_id) {
 	YggMessage_initIp(msg, proto_id, dest->ip.addr, dest->ip.port);
 	uint16_t msg_type = codify(type);
-	YggMessage_addPayload(msg, &msg_type, sizeof(uint16_t));
+	YggMessage_addPayload(msg, (char*) &msg_type, sizeof(uint16_t));
 }
 
 static void send_gossip_msg(peer* dest, peer* self, unsigned short requester_id, int mid, int round, void* contents, unsigned short contents_lenght, unsigned short proto_id) {
@@ -236,14 +236,14 @@ static void send_gossip_msg(peer* dest, peer* self, unsigned short requester_id,
 	uint32_t mid_t = htonl(mid);
 	uint16_t round_t = htons(round);
 
-	YggMessage_addPayload(&msg, &mid_t, sizeof(uint32_t));
-	YggMessage_addPayload(&msg, &round_t, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &mid_t, sizeof(uint32_t));
+	YggMessage_addPayload(&msg, (char*) &round_t, sizeof(uint16_t));
 
 	uint16_t req_id = htons(requester_id);
-	YggMessage_addPayload(&msg, &req_id, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &req_id, sizeof(uint16_t));
 
 	uint16_t size = htons(contents_lenght);
-	YggMessage_addPayload(&msg, &size, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &size, sizeof(uint16_t));
 	YggMessage_addPayload(&msg, contents, contents_lenght); //this could be optimized for passing references (but would need to have a dispatcher that could handle this)
 
 
@@ -284,8 +284,8 @@ static void send_graft_msg(peer* node, peer* self, int mid, int round, unsigned 
 	uint32_t mid_t = htonl(mid);
 	uint16_t round_t = htons(round);
 
-	YggMessage_addPayload(&msg, &mid_t, sizeof(uint32_t));
-	YggMessage_addPayload(&msg, &round_t, sizeof(uint16_t));
+	YggMessage_addPayload(&msg, (char*) &mid_t, sizeof(uint32_t));
+	YggMessage_addPayload(&msg, (char*) &round_t, sizeof(uint16_t));
 
 	dispatch(&msg);
 
@@ -297,8 +297,8 @@ static void build_ihave_entry(YggMessage* msg, lazy_queue_item* item) {
 	uint32_t mid_t = htonl(item->mid);
 	uint16_t round = htons(item->round);
 
-	YggMessage_addPayload(msg, &mid_t, sizeof(uint32_t));
-	YggMessage_addPayload(msg, &round, sizeof(uint16_t));
+	YggMessage_addPayload(msg, (char*) &mid_t, sizeof(uint32_t));
+	YggMessage_addPayload(msg, (char*) &round, sizeof(uint16_t));
 }
 
 static list* policy(plumtree_state* state) {
@@ -371,7 +371,7 @@ static void process_gossip(YggMessage* msg, void* ptr, plumtree_state* state) {
 	ptr = YggMessage_readPayload(msg, ptr, &mid_t, sizeof(uint32_t));
 	int mid = ntohl(mid_t);
 	message_item* m = NULL;
-	if((m = list_find_item(state->received, equal_message_item, mid)) == NULL) {
+	if((m = list_find_item(state->received, (equal_function) equal_message_item, &mid)) == NULL) {
 		uint16_t round_t;
 		uint16_t req_id_t;
 		uint16_t size;
@@ -391,18 +391,18 @@ static void process_gossip(YggMessage* msg, void* ptr, plumtree_state* state) {
 
 		lazy_queue_item* lqi = NULL;
 		bool cancel = false;
-		while((lqi = list_remove_item(state->missing, equal_mid, mid)) != NULL) {
+		while((lqi = list_remove_item(state->missing, (equal_function) equal_mid, &mid)) != NULL) {
 			free(lqi);
 			cancel = true;
 		}
 		if(cancel)
 			cancel_timer(mid, state);
 
-		peer* p = list_remove_item(state->lazy_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+		peer* p = list_remove_item(state->lazy_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 		if(p) {
 			list_add_item_to_tail(state->eager_push_peers, p);
 		} else
-			p = list_find_item(state->eager_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+			p = list_find_item(state->eager_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 		if(!p) {
 			char warning_msg[100];
@@ -418,11 +418,11 @@ static void process_gossip(YggMessage* msg, void* ptr, plumtree_state* state) {
 
 
 	}else {
-		peer* p = list_remove_item(state->eager_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+		peer* p = list_remove_item(state->eager_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 		if(p)
 			list_add_item_to_tail(state->lazy_push_peers, p);
 		else
-			p = list_find_item(state->lazy_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+			p = list_find_item(state->lazy_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 		if(p)
 			send_prune_msg(p, state->self, state->proto_id);
@@ -448,7 +448,7 @@ static void process_prune(YggMessage* msg, void* ptr, plumtree_state* state) {
 	ygg_log("PLUMTREE", "DEBUG", debug_msg);
 #endif
 
-	peer* p = list_remove_item(state->eager_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_remove_item(state->eager_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(p)
 		list_add_item_to_tail(state->lazy_push_peers, p);
 
@@ -457,8 +457,8 @@ static void process_prune(YggMessage* msg, void* ptr, plumtree_state* state) {
 
 static void process_ihave(int mid, int round, peer* sender, plumtree_state* state) {
 
-	if(!list_find_item(state->received, equal_message_item, mid)) {
-		if(!list_find_item(state->timers, equal_timer, mid)) {
+	if(!list_find_item(state->received, (equal_function) equal_message_item, &mid)) {
+		if(!list_find_item(state->timers, (equal_function) equal_timer, &mid)) {
 			set_timer(mid, state);
 		}
 		lazy_queue_item* lqi = create_lazy_queue_item(sender, mid, round);
@@ -484,9 +484,9 @@ static void process_ihave_msg(YggMessage* msg, void* ptr, plumtree_state* state)
 	int mid = ntohl(mid_t);
 	unsigned short round = ntohs(round_t);
 
-	peer* p = list_find_item(state->lazy_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_find_item(state->lazy_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(!p)
-		p = list_find_item(state->eager_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+		p = list_find_item(state->eager_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 
 	if(!p) {
 		char warning_msg[100];
@@ -521,11 +521,11 @@ static void process_graft(YggMessage* msg, void* ptr, plumtree_state* state) {
 	int mid = ntohl(mid_t);
 	unsigned short round = ntohs(round_t);
 
-	peer* p = list_remove_item(state->lazy_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+	peer* p = list_remove_item(state->lazy_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	if(p) {
 		list_add_item_to_tail(state->eager_push_peers, p);
 	} else
-		p = list_find_item(state->eager_push_peers, equal_peer_addr, &msg->header.src_addr.ip);
+		p = list_find_item(state->eager_push_peers, (equal_function) equal_peer_addr, &msg->header.src_addr.ip);
 	message_item* m = NULL;
 	if(!p) {
 		char warning_msg[100];
@@ -533,7 +533,7 @@ static void process_graft(YggMessage* msg, void* ptr, plumtree_state* state) {
 		sprintf(warning_msg, "I do not known graft message originator  %s %d, ignoring", msg->header.src_addr.ip.addr, msg->header.src_addr.ip.port);
 		ygg_log("PLUMTREE", "WARNING", warning_msg);
 	}
-	else if((m = list_find_item(state->received, equal_message_item, mid)) != NULL) {
+	else if((m = list_find_item(state->received, (equal_function) equal_message_item, &mid)) != NULL) {
 		send_gossip_msg(p, state->self, m->requestor_id, mid, round, m->msg_payload, m->msg_payload_size, state->proto_id);
 	}
 
@@ -614,7 +614,7 @@ static void process_timer(YggTimer* timer, plumtree_state* state) {
 		sprintf(debug_msg, "received timeout for mid: %d", mid);
 		ygg_log("PLUMTREE", "DEBUG", debug_msg);
 #endif
-		lazy_queue_item* lqi = list_remove_item(state->missing, equal_mid, mid);
+		lazy_queue_item* lqi = list_remove_item(state->missing, (equal_function) equal_mid, &mid);
 		if(!lqi) {
 			char warning_msg[100];
 			bzero(warning_msg, 100);
@@ -623,11 +623,11 @@ static void process_timer(YggTimer* timer, plumtree_state* state) {
 			YggTimer_freePayload(timer);
 			return;
 		}
-		peer* p = list_remove_item(state->lazy_push_peers, equal_peer, lqi->node);
+		peer* p = list_remove_item(state->lazy_push_peers, (equal_function) equal_peer, lqi->node);
 		if(p)
 			list_add_item_to_tail(state->eager_push_peers, p);
 		else
-			p = list_find_item(state->eager_push_peers, equal_peer, lqi->node);
+			p = list_find_item(state->eager_push_peers, (equal_function) equal_peer, lqi->node);
 		if(p)
 			send_graft_msg(p, state->self, mid, lqi->round, state->proto_id);
 		else {
@@ -636,7 +636,7 @@ static void process_timer(YggTimer* timer, plumtree_state* state) {
 			sprintf(warning_msg, "no peer to send graft missing msg mid: %d", mid);
 			ygg_log("PLUMTREE", "WARNING", warning_msg);
 		}
-		if(list_find_item(state->timers, equal_timer, mid)) {
+		if(list_find_item(state->timers, (equal_function) equal_timer, &mid)) {
 			YggTimer_set(timer, state->timeout_s-1, state->timeout_ns, 0, 0); //TODO: better set timeout 2: to an average roundtrip time
 			setupTimer(timer);
 		}
@@ -659,16 +659,16 @@ static void process_neighbour_down(YggEvent* ev, plumtree_state* state) {
 	YggEvent_readPayload(ev, ptr, &ip.port, sizeof(unsigned short));
 
 	peer* p = NULL;
-	p = list_remove_item(state->eager_push_peers, equal_peer_addr, &ip);
+	p = list_remove_item(state->eager_push_peers, (equal_function) equal_peer_addr, &ip);
 
-	peer* c = list_remove_item(state->lazy_push_peers, equal_peer_addr, &ip);
+	peer* c = list_remove_item(state->lazy_push_peers, (equal_function) equal_peer_addr, &ip);
 	if(c)
 		p = c;
 
-	while(list_remove_item(state->missing, equal_node, p));
+	while(list_remove_item(state->missing, (equal_function) equal_node, p));
 
 
-	while(list_remove_item(state->lazy_queue, equal_node, p));
+	while(list_remove_item(state->lazy_queue, (equal_function) equal_node, p));
 
 	destroy_peer(p);
 
@@ -774,7 +774,7 @@ proto_def* plumtree_init(void* args) {
 	proto_def* plumtree = create_protocol_definition(PROTO_PLUMTREE, "PlumTree", state, NULL);
 	proto_def_add_consumed_event(plumtree, a->membership_id, OVERLAY_NEIGHBOUR_UP);
 	proto_def_add_consumed_event(plumtree, a->membership_id, OVERLAY_NEIGHBOUR_DOWN);
-	proto_def_add_protocol_main_loop(plumtree, plumtree_main_loop);
+	proto_def_add_protocol_main_loop(plumtree, (Proto_main_loop) plumtree_main_loop);
 
 	YggTimer gc;
 	YggTimer_init(&gc, PROTO_PLUMTREE, PROTO_PLUMTREE);

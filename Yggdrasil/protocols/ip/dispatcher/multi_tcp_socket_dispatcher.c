@@ -450,7 +450,7 @@ static void handle_outbound_reads(simple_tcp_dispatcher_state* state, fd_set* re
 
             c->conn_state = READING;
             pthread_t t;
-            pthread_create(&t, NULL, handle_async_read, args);
+            pthread_create(&t, NULL, (gen_function) handle_async_read, args);
             pthread_detach(t);
 
         } else if(c->sockid > 0 && FD_ISSET(c->sockid, excepts) != 0){
@@ -557,7 +557,7 @@ static void handle_async_pipe(simple_tcp_dispatcher_state* state) {
                 args->state = state;
 
                 pthread_t t;
-                pthread_create(&t, NULL, handle_async_send, args);
+                pthread_create(&t, NULL, (gen_function) handle_async_send, args);
                 pthread_detach(t);
             } else
                 c->conn_state = status.state; //CONNECTED
@@ -667,7 +667,7 @@ static void perform_async_connect(connection* c, simple_tcp_dispatcher_state* st
 	args->connection_ip.port = c->ip.port;
 
 	pthread_t t;
-	pthread_create(&t, NULL, handle_connect, args);
+	pthread_create(&t, NULL, (gen_function) handle_connect, args);
 	pthread_detach(t);
 
 	c->conn_state = CONNECTING;
@@ -715,7 +715,7 @@ static void process_large_msg(simple_tcp_dispatcher_state* state, YggMessage* ms
                args->state = state;
 
                pthread_t t;
-               pthread_create(&t, NULL, handle_async_send, args);
+               pthread_create(&t, NULL, (gen_function) handle_async_send, args);
                pthread_detach(t);
            }
        }
@@ -882,7 +882,7 @@ static void* simple_tcp_dispatcher_main_loop(main_loop_args* args) {
 
 	state->socket_manager = malloc(sizeof(pthread_t));
 
-	pthread_create(state->socket_manager, NULL, &manage_sockets, (void*) state);
+	pthread_create(state->socket_manager, NULL, (gen_function) &manage_sockets, (void*) state);
 
 	while(1) {
 		queue_t_elem elem;

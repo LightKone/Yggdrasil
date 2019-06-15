@@ -106,7 +106,7 @@ static connection* accept_handshake(int sockid, simple_tcp_dispatcher_state* sta
 		//printf("Error: %s\n", ERR_reason_error_string(ERR_get_error()));
 		ERR_print_errors_fp(stderr);
 	}
-	printf("verify %d\n", SSL_get_verify_result(c->ssl));
+	printf("verify %ld\n", SSL_get_verify_result(c->ssl));
 	printf("Connected with %s encryption\n", SSL_get_cipher(c->ssl));
 	ShowCerts(c->ssl);
 	printf("ssl acceptted\n");
@@ -145,7 +145,7 @@ static void connect_handshake(connection* c, simple_tcp_dispatcher_state* state)
 		//printf("Error: %s\n", ERR_reason_error_string(ERR_get_error()));
 		 ERR_print_errors_fp(stderr);
 	}
-	printf("verify %d\n", SSL_get_verify_result(c->ssl));
+	printf("verify %ld\n", SSL_get_verify_result(c->ssl));
 	printf("Connected with %s encryption\n", SSL_get_cipher(c->ssl));
 	ShowCerts(c->ssl);
 	printf("ssl connected\n");
@@ -518,7 +518,7 @@ static void* simple_tcp_dispatcher_main_loop(main_loop_args* args) {
 	pthread_attr_t patribute;
 	pthread_attr_init(&patribute);
 
-	pthread_create(state->receiver, &patribute, &simple_tcp_dispatcher_receiver, (void*) state);
+	pthread_create(state->receiver, &patribute, (gen_function) &simple_tcp_dispatcher_receiver, (void*) state);
 
 	while(1) {
 		queue_t_elem elem;
@@ -620,7 +620,7 @@ proto_def* simple_tls_dispatcher_init(Channel* ch, void* args) {
 
 	/*************************************/
 
-	proto_def* dispatcher = create_protocol_definition(PROTO_DISPATCH, "simple tcp dispatcher", (void*) state, (destroy_function) destroy);
+	proto_def* dispatcher = create_protocol_definition(PROTO_DISPATCH, "simple tcp dispatcher", (void*) state, (Proto_destroy) destroy);
 
 	proto_def_add_produced_events(dispatcher, 3/*4?*/); //conn up, conn down, unable to conn, failed to send? :/
 	proto_def_add_consumed_event(dispatcher, PROTO_DISPATCH, TCP_DISPATCHER_CONNECTION_DOWN);
