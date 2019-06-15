@@ -11,6 +11,13 @@
 
 #include "control_protocol_utils.h"
 
+static void genUUID(uuid_t id){
+    int tries = 0;
+    while(uuid_generate_time_safe(id) < 0 && tries < 3){
+        tries ++;
+    }
+}
+
 static CONTROL_COMMAND_TREE_REQUESTS announce_code = LOCAL_ANNOUNCE;
 
 tree_command* init_command_header(CONTROL_COMMAND_TREE_REQUESTS cmd) {

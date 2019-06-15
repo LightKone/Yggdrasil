@@ -12,7 +12,7 @@
 #ifndef CONTROL_DISCOVERY_H_
 #define CONTROL_DISCOVERY_H_
 
-#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
+//#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 #include "core/ygg_runtime.h"
 
 #define PROTO_CONTROL_DISCOVERY 35

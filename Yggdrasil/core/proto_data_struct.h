@@ -14,15 +14,15 @@
 
 #include <uuid/uuid.h>
 
-#include "../../Yggdrasil-LowLevelLib/src/data_struct.h"
+#include "src/data_struct.h"
 
-#ifdef WIRELESS
+#ifdef WIRELESS_NETWORKS
 #include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 #define YGG_MESSAGE_PAYLOAD MAX_PAYLOAD -sizeof(short) -sizeof(unsigned int) //Proto_id will be serialized into phy message payload (message id)
 #endif
 
 
-#ifndef WIRELESS
+#ifndef WIRELESS_NETWORKS
 #define YGG_MESSAGE_PAYLOAD 1500 //not-used if no wireless
 #endif
 

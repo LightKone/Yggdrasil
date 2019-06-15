@@ -14,7 +14,6 @@
 
 #include <stdlib.h>
 
-#include "src_wireless/Yggdrasil_wireless_lowlvl.h"
 #include "core/ygg_runtime.h"
 
 typedef enum {

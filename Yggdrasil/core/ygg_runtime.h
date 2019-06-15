@@ -152,7 +152,7 @@ void app_def_add_consumed_events(app_def* application_definition, short producer
  *********************************************************/
 
 #ifdef WIRELESS_NETWORKS
-#include "core/protos/wireless/dispatcher.h"
+#include "protos/wireless/dispatcher.h"
 #endif
 
 #ifdef IP_NETWORKS

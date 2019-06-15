@@ -9,6 +9,8 @@ include_directories(../../)
 include_directories(../../core)
 include_directories(../../../Yggdrasil-LowLevelLib)
 
+link_libraries(yggcore_ip)
+
 #membership
 add_library(hyparview
 
@@ -21,9 +23,9 @@ add_library(xbot
         utility/oracles/udp_oracle.c
         )
 
+target_link_libraries(xbot PUBLIC hyparview PRIVATE hashfunctions)
 
 #dissemination
-#TODO change this
 add_library(plumtree
         dissimination/plumtree.c
         )
@@ -33,23 +35,28 @@ add_library(plumtree_mem_opt
         )
 
 target_link_libraries(plumtree PRIVATE hashfunctions)
-target_link_libraries(plumtree_mem_opt PRIVATE hashfunctions)
+target_link_libraries(plumtree_mem_opt PUBLIC plumtree PRIVATE hashfunctions)
 
 #data transfer
+add_library(simple_data_transfer
+
+        data_transfer/simple_data_transfer.c
+        )
+
 add_library(block_data_transfer
 
         data_transfer/block_data_transfer.c
         )
+
+
 
 add_library(block_data_transfer_plumtree
 
         data_transfer/block_data_transfer_plumtree.c
         )
 
-add_library(simple_data_transfer
+target_link_libraries(block_data_transfer_plumtree PUBLIC plumtree_mem_opt PUBLIC block_data_transfer)
 
-        data_transfer/simple_data_transfer.c
-        )
 
 target_compile_definitions(block_data_transfer PUBLIC TEST_LOCAL_TRANSFER)
 target_compile_definitions(block_data_transfer_plumtree PUBLIC TEST_LOCAL_TRANSFER)
@@ -61,12 +68,10 @@ add_library(multi_tcp_dispatcher
         dispatcher/multi_tcp_socket_dispatcher.c
         )
 
+
 add_library(tls_dispatcher
 
         dispatcher/simple_tls_dispatcher.c
         )
 
-target_compile_options(tls_dispatcher BEFORE PUBLIC -lssl  -lcrypto)
-
-#this must be at the end
-link_libraries(yggcore_ip)
+target_link_libraries(tls_dispatcher ssl crypto)

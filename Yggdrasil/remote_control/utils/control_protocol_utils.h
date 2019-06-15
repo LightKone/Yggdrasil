@@ -13,10 +13,11 @@
 #define CONTROL_PROTOCOL_UTILS_H_
 
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
 
-#include "core/utils/utils.h"
+//#include "core/utils/utils.h"
 
 typedef enum CONTROL_COMMAND_TREE_REQUESTS_ {
 	SETUP,
