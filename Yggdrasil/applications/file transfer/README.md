@@ -37,7 +37,7 @@ The optional argument `[-d <working directory>]` serves to specify the directory
 
 By the default `<working directory>` is set to `~/files/<nodePort>`, which will be created if they don't exist. 
 
-####Client
+#### Client
 
 `yggTransfer [-s <serverAddress>] <path/to/file>`
 
@@ -45,7 +45,7 @@ The Client will transfer the local file `<path/to/file>` to the process identifi
 
 Upon a successful first transfer, the File Dissemination Server will begin to disseminate the file to the remainder of the system.
 
-##Server Architecture
+## Server Architecture
 
 The File Dissemination Server is composed by 3 protocols found in Yggdrasil, an alternative Dispatcher protocol, and a simple command interpreter.
 
