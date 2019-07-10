@@ -1,11 +1,11 @@
-#Yggdrasil IP Networks Test Applications
+# Yggdrasil IP Networks Test Applications
 
 Each `.c` file in this folder is mapped to a build target.
 
 Here, we will guide through the existing targets, on how to compile them, execute them, as well as their dependencies.
 
 
-##Existing targets
+## Existing targets
 
 | Target | File |
 | ----------- | ----------- |
@@ -40,7 +40,7 @@ You can change the name of the targets in the `CMakeList.txt` in this folder.
 
 ***
 
-###Executing the Tests:
+### Executing the Tests:
 
 We omit the base path for the following binary executables. If you are in your project directory use: `bin/<target name>`; if you are in `bin/` then simply use: `./<target name>`  
 

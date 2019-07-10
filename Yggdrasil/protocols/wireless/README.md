@@ -1,11 +1,11 @@
-#Protocols for Wireless Ad Hoc networks
+# Protocols for Wireless Ad Hoc networks
 
-##Aggregation Protocols
+## Aggregation Protocols
 
-##Communication Protocols
+## Communication Protocols
 
-##Discovery Protocols
+## Discovery Protocols
 
-##Alternative Dispatchers
+## Alternative Dispatchers
 
-##Other Utility Protocols
+## Other Utility Protocols

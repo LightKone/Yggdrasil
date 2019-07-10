@@ -1,10 +1,10 @@
-#File Dissemination Application
+# File Dissemination Application
 
 Here you can find a file dissemination application built using the abstractions provided by the Yggdrasil Framework and Runtime system.
 
 The application is composed by a File Dissemination Server (found in ``main.c``) and a Client (found in ``tools/transfer.c``).
 
-##Compiling and Executing
+## Compiling and Executing
 
 The following assumes that a ``build/``, ``bin/``, and ``lib/`` folders exist in your **project directory**.
 
@@ -12,7 +12,7 @@ The following assumes that a ``build/``, ``bin/``, and ``lib/`` folders exist in
 - `bin/` - will contain binary executables.
 - `lib/` - will contain static library. 
 
-###Instructions for compiling
+### Instructions for compiling
 
 1. `cd build` and `cmake ..` - this will create compilation rules for the whole Yggdrasil Project in `build/`
 2. (still in `build/`) `make yggFileTransfer` - the Yggdrasil project contains multiple targets, which are not relevant for this application. The target `yggFileTransfer` will build both the File Dissemination Server and the Client.
@@ -21,9 +21,9 @@ This will create the following binaries in `bin/`:
 1. `yggFileServer` - The File Dissemination Server 
 2. `yggTransfer`   - The Client
 
-###Instructions for executing
+### Instructions for executing
 
-####File Dissemination Server
+#### File Dissemination Server
 
 `yggFileServer [-d <working directory>] <nodeAddress> <nodePort> [<contactAddress> <contactPort>]`
 
@@ -49,7 +49,7 @@ Upon a successful first transfer, the File Dissemination Server will begin to di
 
 The File Dissemination Server is composed by 3 protocols found in Yggdrasil, an alternative Dispatcher protocol, and a simple command interpreter.
 
-###Protocols
+### Protocols
 * HyParView - manages the membership of the system
 * PlumTree - disseminates information throughout the system
 * File Reader & Writer - reads & writes the disseminated files to disk
@@ -66,13 +66,13 @@ Due to the size messages, the application leverages an alternative Yggdrasil Dis
 
 The code for this Dispatcher can be found in the Yggdrasil Project at `/protocols/ip/dispatcher/multi_tcp_socket_dispatcher.c`
 
-###Application Layer
+### Application Layer
 The application layer contains a dedicated thread to receive incoming requests from the client. The client will transfer a file, which will be written into the working directory, and then requested to disseminate by the File Reader & Writer Protocol.
 
 The Client will get reply from the File Dissemination Server, stating that the dissemination process has begun or that an error occurred in the Server side.
 
 
-##Missing Features
+## Missing Features
 
 The application should be pretty stable. However there are some missing feature that should be incorporated:
 

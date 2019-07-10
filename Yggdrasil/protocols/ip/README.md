@@ -1,10 +1,10 @@
-#Protocols for IP networks
+# Protocols for IP networks
 
 Here you can find protocols for IP networks implemented using the abstractions provided by Yggdrasil.
 
 We provide a brief description of the implemented protocols.
 
-##Data Transfer Management Protocols
+## Data Transfer Management Protocols
 Under `data_transfer/` you can find 3 flavours of protocols to manage the transfer of files:
 1. `simple_data_transfer.c`
 1. `block_data_transfer.c`
@@ -28,7 +28,7 @@ In addition to the previous protocol, this one interplays with a dissemination p
  This interface allows another protocol to request the contents of a given message (in this case the file block) when needed.
 
 
-##Alternative Dispatchers
+## Alternative Dispatchers
 Under `dispatcher/` you can find 2 alternative dispatcher protocols for Yggdrasil:
 1. `multi_tcp_socket_dispatcher.c`
 1. `simple_tls_dispatcher.c`
@@ -50,7 +50,7 @@ The protocol guarantees FIFO ordering on asynchronous large messages per destina
 The default Yggdrasil Dispatcher Protocol for IP networks enriched with TLS sockets provided by the openssl library.
 
 
-##Dissemination Protocols
+## Dissemination Protocols
 Under `dissemination/` you can find 5 flavours of dissemination protocols:
 1. `flood.c`
 1. `flood_flow_control.c`
@@ -90,7 +90,7 @@ In other words, only the message owner protocol contains the contents of the mes
 This protocol enriches the previous one with a simple flow control mechanism similar to the flood with flow control protocol. The exception is that answers to graft messages are also stored in the pipelined with a specific destination address.
 
     
-##Membership Protocols
+## Membership Protocols
 Under `membership/` you can find 2 flavours of membership protocols:
 1. `hyparview.c`
 1. `xbot.c`
@@ -110,5 +110,5 @@ The protocol tries to optimize the resulting random topology to a random topolog
 
 For more information on this protocol, please refer to the original [paper](http://asc.di.fct.unl.pt/~jleitao/pdf/srds09-leitao.pdf).
 
-##Other Utility Protocols
+## Other Utility Protocols
 Under `utility/` you can find other utility protocols that may be used by the above protocols.
