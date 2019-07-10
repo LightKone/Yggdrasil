@@ -313,6 +313,10 @@ static void send_close_request(IPAddr* ip, hyparview_state* state) {
 //invariant p != self
 static bool add_to_passive_if_not_exists(list* active_view, list* passive_view, peer* p, list_item** next_to_drop, peer* self, int max_passive) {
 
+
+//    if(p->ip.addr[0] != '1')
+//        printf("wrong peer\n");
+
 	if(equal_peer(p, self))
 		return false;
 

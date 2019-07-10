@@ -25,7 +25,7 @@
 
 #include "protocols/ip/dispatcher/multi_tcp_socket_dispatcher.h"
 #include "protocols/ip/membership/hyparview.h"
-#include "protocols/ip/dissimination/plumtree.h"
+#include "protocols/ip/dissemination/plumtree.h"
 
 #include "protocols/ip/data_transfer/block_data_transfer.h"
 
@@ -130,7 +130,7 @@ void handle_client_requests() {
     bzero(&address, sizeof(struct sockaddr_in));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_ANY);
-    address.sin_port = htons((unsigned short) 5000 /*server_port*/);
+    address.sin_port = htons((unsigned short) 10000 /*server_port*/);
 
     if(bind(listen_socket, (const struct sockaddr*) &address, sizeof(address)) == 0 ) {
 
@@ -229,7 +229,12 @@ int main(int argc, char* argv[]) {
 
     // only for local testing
     struct stat st = {0};
-    dir = concat("/home/akos/files/", argv[2]);
+    dir = "~/files";
+    if(stat(dir, &st) == -1)
+        mkdir(dir, 0700);
+
+
+    dir = concat("~/files/", argv[2]);
     if (stat(dir, &st) == -1) {
         mkdir(dir, 0700);
     }

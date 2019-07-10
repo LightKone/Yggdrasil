@@ -12,6 +12,11 @@
 
 #include "core/protos/ip/simple_tcp_dispatcher.h"
 
+#define ASYNC_MSG_SENT 44
+
+typedef struct __multi_tcp_dispatch_args {
+    int msg_size_threashold;
+}multi_tcp_dispatch_args;
 
 proto_def* multi_tcp_socket_dispatcher_init(Channel* ch, void* args);
 

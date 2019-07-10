@@ -9,7 +9,7 @@
 #include "core/ygg_runtime.h"
 
 #include "protocols/ip/membership/hyparview.h"
-#include "protocols/ip/dissimination/plumtree.h"
+#include "protocols/ip/dissemination/plumtree.h"
 
 
 void main(int argc, char* argv[]) {

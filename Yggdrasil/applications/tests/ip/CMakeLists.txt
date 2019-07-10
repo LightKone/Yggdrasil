@@ -13,7 +13,7 @@ include_directories(../../../../Yggdrasil-LowLevelLib)
 #include_directories(/usr/include/libnl3)
 
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O0 -lm -pthread -lnl-genl-3 -lnl-3 -luuid -lrt  -lssl  -lcrypto")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O0")
 #set(CMAKE_C_LINK_EXECUTABLE "${CMAKE_C_LINK_EXECUTABLE} -lm -lnl-genl-3 -lnl-3 -luuid -lrt  -lssl  -lcrypto")
 
 
@@ -47,3 +47,14 @@ target_link_libraries(block_transfer_server block_data_transfer plumtree hyparvi
 
 add_executable(block_transfer_opt_server block_transfer_mem_opt_test.c)
 target_link_libraries(block_transfer_opt_server block_data_transfer_plumtree plumtree_mem_opt hyparview multi_tcp_dispatcher)
+
+add_executable(block_transfer_opt_flow_server block_transfer_mem_flow_opt_test.c)
+target_link_libraries(block_transfer_opt_flow_server block_data_transfer_mem_opt plumtree_mem_opt_flow_control hyparview multi_tcp_dispatcher)
+
+
+add_executable(block_transfer block_transfer_full_test.c)
+target_link_libraries(block_transfer block_data_transfer_mem_opt plumtree_mem_opt_flow_control plumtree_mem_opt flood flood_flow_control hyparview multi_tcp_dispatcher)
+
+
+add_custom_target(ip_tests)
+add_dependencies(ip_tests test_hyparview test_plumtree test_xbot test_multi_tcp_dispatcher file_server simple_transfer_server block_transfer_server block_transfer_opt_server)

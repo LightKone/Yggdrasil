@@ -26,16 +26,36 @@ add_library(xbot
 target_link_libraries(xbot PUBLIC hyparview PRIVATE hashfunctions)
 
 #dissemination
+
+add_library(flood
+        dissemination/flood.c
+        dissemination/common_dissemination_interface.c)
+
+add_library(flood_flow_control
+        dissemination/flood_flow_control.c)
+
 add_library(plumtree
-        dissimination/plumtree.c
+        dissemination/plumtree.c
         )
 
 add_library(plumtree_mem_opt
-        dissimination/plumtree_mem_optimized.c
+        dissemination/plumtree_mem_optimized.c
+        dissemination/common_dissemination_interface.c
         )
+
+add_library(plumtree_mem_opt_flow_control
+        dissemination/plumtree_mem_optimized_flow_control.c
+        )
+
+target_link_libraries(flood PRIVATE hashfunctions)
+target_link_libraries(flood_flow_control PUBLIC flood PRIVATE hashfunctions)
+#target_compile_definitions(flood_flow_control PUBLIC DEBUG_FLOOD)
 
 target_link_libraries(plumtree PRIVATE hashfunctions)
 target_link_libraries(plumtree_mem_opt PUBLIC plumtree PRIVATE hashfunctions)
+
+#target_compile_definitions(plumtree_mem_opt_flow_control PUBLIC DEBUG_PLUMTREE)
+target_link_libraries(plumtree_mem_opt_flow_control PUBLIC plumtree_mem_opt multi_tcp_dispatcher PRIVATE hashfunctions)
 
 #data transfer
 add_library(simple_data_transfer
@@ -50,16 +70,16 @@ add_library(block_data_transfer
 
 
 
-add_library(block_data_transfer_plumtree
-
-        data_transfer/block_data_transfer_plumtree.c
+add_library(block_data_transfer_mem_opt
+        data_transfer/block_data_transfer_mem_opt.c
+        dissemination/common_dissemination_interface.c
         )
 
-target_link_libraries(block_data_transfer_plumtree PUBLIC plumtree_mem_opt PUBLIC block_data_transfer)
+target_link_libraries(block_data_transfer_mem_opt PUBLIC block_data_transfer PRIVATE hashfunctions)
 
 
 target_compile_definitions(block_data_transfer PUBLIC TEST_LOCAL_TRANSFER)
-target_compile_definitions(block_data_transfer_plumtree PUBLIC TEST_LOCAL_TRANSFER)
+target_compile_definitions(block_data_transfer_mem_opt PUBLIC TEST_LOCAL_TRANSFER)
 target_compile_definitions(simple_data_transfer PUBLIC TEST_LOCAL_TRANSFER)
 
 #dispatcher

@@ -21,7 +21,7 @@
 
 #include "protocols/ip/dispatcher/multi_tcp_socket_dispatcher.h"
 #include "protocols/ip/membership/hyparview.h"
-#include "protocols/ip/dissimination/plumtree.h"
+#include "protocols/ip/dissemination/plumtree.h"
 
 typedef enum _commands {
     BUILD,

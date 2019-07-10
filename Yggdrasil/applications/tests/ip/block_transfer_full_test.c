@@ -1,9 +1,5 @@
 //
-// Created by Pedro Akos on 2019-06-04.
-//
-
-//
-// Created by Pedro Akos on 2019-05-31.
+// Created by Pedro Akos on 2019-06-07.
 //
 
 #include <stdlib.h>
@@ -25,9 +21,12 @@
 
 #include "protocols/ip/dispatcher/multi_tcp_socket_dispatcher.h"
 #include "protocols/ip/membership/hyparview.h"
-#include "protocols/ip/dissemination/plumtree.h"
+#include "protocols/ip/dissemination/plumtree_mem_optimized_flow_control.h"
+#include "protocols/ip/dissemination/plumtree_mem_optimized.h"
+#include "protocols/ip/dissemination/flood.h"
+#include "protocols/ip/dissemination/flood_flow_control.h"
 
-#include "protocols/ip/data_transfer/simple_data_transfer.h"
+#include "protocols/ip/data_transfer/block_data_transfer_mem_opt.h"
 
 typedef enum _commands {
     BUILD,
@@ -130,7 +129,7 @@ void handle_client_requests() {
     bzero(&address, sizeof(struct sockaddr_in));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_ANY);
-    address.sin_port = htons((unsigned short) 5000 /*server_port*/);
+    address.sin_port = htons((unsigned short) 10000 /*server_port*/);
 
     if(bind(listen_socket, (const struct sockaddr*) &address, sizeof(address)) == 0 ) {
 
@@ -166,7 +165,7 @@ static void request_file_transfer(YggRequest* req) {
     memcpy(filename, ptr, file_name_size);
 
     YggRequest_freePayload(req);
-    YggRequest_init(req, 400, PROTO_SIMPLE_DATA_TRANSFER, REQUEST, DISSEMINATE_FILE);
+    YggRequest_init(req, 400, PROTO_BLOCK_DATA_TRANSFER, REQUEST, DISSEMINATE_FILE);
     YggRequest_addPayload(req, filename, file_name_size+1);
 
     deliverRequest(req);
@@ -174,42 +173,18 @@ static void request_file_transfer(YggRequest* req) {
 }
 
 
-static void open_file(YggRequest* req) {
-    commands cmd;
-    void* ptr = YggRequest_readPayload(req,  NULL, &cmd, sizeof(commands));
-    int file_name_size = strlen((char*)ptr);
-    char* filename = malloc(file_name_size);
-    bzero(filename, file_name_size);
-    memcpy(filename, ptr, file_name_size);
+static void build_plumtree_request(YggRequest* req) {
+    void* payload = req->payload;
 
-    int fd = open(filename, O_RDONLY);
-    struct stat s;
-    if(fstat(fd, &s) < 0){
-        perror("FSTAT");
-    }
+    dissemination_request* d_req = dissemination_request_init();
+    req->payload = d_req;
 
-    int file_len = s.st_size;
-    char* buffer = malloc(file_len);
-    bzero(buffer, file_len);
+    dissemmination_request_add_to_header(d_req, payload, sizeof(commands));
+    if(req->length > sizeof(commands))
+        dissemmination_request_add_to_body(d_req, payload+ sizeof(commands), req->length- sizeof(commands));
 
-
-    void* f_addr = mmap(NULL, file_len, PROT_READ, MAP_PRIVATE, fd, 0);
-    memcpy(buffer, f_addr, file_len);
-
-    req->length = sizeof(commands); //leave command header
-    YggRequest_addPayload(req, &file_name_size, sizeof(int));
-    YggRequest_addPayload(req, filename, file_name_size);
-    YggRequest_addPayload(req, &file_len, sizeof(int));
-    YggRequest_addPayload(req, buffer, file_len);
-
-    req->proto_dest = PROTO_PLUMTREE;
-    deliverRequest(req);
-
-    close(fd);
-    free(filename);
-    free(buffer);
-    munmap(f_addr, file_len);
-
+    free(payload);
+    req->length = sizeof(dissemination_request);
 }
 
 char* concat(const char *s1, const char *s2)
@@ -221,42 +196,90 @@ char* concat(const char *s1, const char *s2)
     return result;
 }
 
+unsigned short setup_dissemination_protocol(int option) {
+    unsigned short proto_id;
+    switch (option) {
+        case 0: {
+            flood_args *f = flood_args_init();
+            registerProtocol(PROTO_FLOOD, (Proto_init) flood_init, f);
+            flood_args_destroy(f);
+            proto_id = PROTO_FLOOD;
+            break;
+        }
+        case 1: {
+            flood_args *f = flood_args_init();
+            registerProtocol(PROTO_FLOOD, (Proto_init) flood_flow_control_init, f);
+            flood_args_destroy(f);
+            proto_id = PROTO_FLOOD;
+            break;
+        }
+        case 2: {
+            plumtree_args *p = plumtree_args_init(0, 5, 0, PROTO_HYPARVIEW);
+            registerProtocol(PROTO_PLUMTREE, (Proto_init) plumtree_mem_optimized_init, p);
+            plumtree_flow_control_args_destroy(p);
+            proto_id = PROTO_PLUMTREE;
+            break;
+        }
+        case 3: {
+            plumtree_flow_control_args *p = plumtree_flow_control_args_init(0, 5, 0, PROTO_HYPARVIEW, 1024);
+            registerProtocol(PROTO_PLUMTREE, (Proto_init) plumtree_mem_optimized_flow_control_init, p);
+            plumtree_flow_control_args_destroy(p);
+            proto_id = PROTO_PLUMTREE;
+            break;
+        }
+        default:
+            break;
+    }
+
+    return proto_id;
+}
 
 int main(int argc, char* argv[]) {
 
     char* myIp = argv[1];
     unsigned short myport = atoi(argv[2]);
 
-    // only for local testing
+//    // only for local testing
     struct stat st = {0};
-    dir = concat("/home/akos/files/", argv[2]);
-    if (stat(dir, &st) == -1) {
-        mkdir(dir, 0700);
-    }
+//    dir = "~/files";
+//    if(stat(dir, &st) == -1)
+//        mkdir(dir, 0700);
+//
+//
+//    dir = concat("~/files/", argv[2]);
+//    if (stat(dir, &st) == -1) {
+//        mkdir(dir, 0700);
+//    }
 
     char* contact = argv[3];
     unsigned short contactport = atoi(argv[4]);
 
     int serve_command = atoi(argv[5]);
 
+    dir = argv[7];
+    if (stat(dir, &st) == -1) {
+        mkdir(dir, 0700);
+        perror(dir);
+   }
+
     NetworkConfig* ntconf = defineIpNetworkConfig(myIp, myport, TCP, 10, 0);
 
     ygg_runtime_init(ntconf);
 
-    overrideDispatcherProtocol(multi_tcp_socket_dispatcher_init, NULL);
+    multi_tcp_dispatch_args mtda;
+    mtda.msg_size_threashold = 1024;
+    overrideDispatcherProtocol(multi_tcp_socket_dispatcher_init, &mtda);
 
 
     hyparview_args* a = hyparview_args_init(contact, contactport, 4, 7, 4, 2, 2, 3, 5, 0, 1, 0);
     registerProtocol(PROTO_HYPARVIEW, hyparview_init, a);
     hyparview_args_destroy(a);
 
-    plumtree_args* p = plumtree_args_init(0, 5, 0, PROTO_HYPARVIEW);
-    registerProtocol(PROTO_PLUMTREE, plumtree_init, p);
-    plumtree_args_destroy(p);
+    unsigned short proto_id = setup_dissemination_protocol(atoi(argv[6]));
 
-    simple_data_transfer_args* dt = simple_data_transfer_args_init(PROTO_PLUMTREE, PLUMTREE_BROADCAST_REQUEST, dir);
-    registerProtocol(PROTO_SIMPLE_DATA_TRANSFER, (Proto_init) simple_data_transfer_init, dt);
-    simple_data_transfer_args_destroy(dt);
+    block_data_transfer_args* dt = block_data_transfer_args_init(proto_id, DISSEMINATION_REQUEST, dir);
+    registerProtocol(PROTO_BLOCK_DATA_TRANSFER, (Proto_init) block_data_transfer_mem_opt_init, dt);
+    block_data_transfer_args_destroy(dt);
 
 
     short myId = 400;
@@ -289,6 +312,7 @@ int main(int argc, char* argv[]) {
                     case SEND:
                         req->request_type = PLUMTREE_BROADCAST_REQUEST;
                         req->proto_dest = PROTO_PLUMTREE;
+                        build_plumtree_request(req);
                         deliverRequest(req);
                         break;
                     case FILE_TRANSFER:
@@ -309,8 +333,10 @@ int main(int argc, char* argv[]) {
 
             if(elem.data.event.notification_id == OVERLAY_NEIGHBOUR_UP) {
                 ygg_log("MYAPP", "NEIGHBOUR UP", s);
+                fprintf(stderr, "neigh up %s\n", s);
             } else if (elem.data.event.notification_id == OVERLAY_NEIGHBOUR_DOWN) {
                 ygg_log("MYAPP", "NEIGHBOUR DOWN", s);
+                fprintf(stderr, "neigh down %s\n", s);
             }
         }
 

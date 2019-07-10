@@ -11,6 +11,9 @@ set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/lib)
 
+set (CMAKE_C_STANDARD 99)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -O0")
+
 # Add subdirectories
 add_subdirectory("Yggdrasil-LowLevelLib")
 add_subdirectory("Yggdrasil")

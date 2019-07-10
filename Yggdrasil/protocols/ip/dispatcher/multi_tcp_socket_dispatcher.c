@@ -29,7 +29,6 @@ typedef struct _connections{
 	connection_state conn_state;
 	list* buffered;
 
-
 }connection;
 
 static YggMessage* next_buffered_msg(connection* c) {
@@ -110,6 +109,8 @@ typedef struct _simple_tcp_dispatcher_state{
 	int connecting_pipe[2];
 
 	int async_pipe[2];
+
+    int msg_size_threashold;
 
 }simple_tcp_dispatcher_state;
 
@@ -236,9 +237,9 @@ static int handle_read(simple_tcp_dispatcher_state* state, connection* c, YggMes
 	int r = recv(c->sockid, &proto_id, sizeof(uint16_t), 0);
 	if(r == sizeof(uint16_t)) {
 		//everything ok
-		uint32_t msg_size;
-		r = recv(c->sockid, &msg_size, sizeof(uint32_t), 0);
-		if(r == sizeof(uint32_t)) {
+		uint16_t msg_size;
+		r = recv(c->sockid, &msg_size, sizeof(uint16_t), 0);
+		if(r == sizeof(uint16_t)) {
 			//everything ok
 			r = 0;
 			msg->header.type = IP;
@@ -249,7 +250,7 @@ static int handle_read(simple_tcp_dispatcher_state* state, connection* c, YggMes
 			memcpy(msg->header.src_addr.ip.addr, c->ip.addr, 16);
 			msg->header.src_addr.ip.port = c->ip.port;
 			msg->Proto_id = ntohs(proto_id);
-			msg->dataLen = ntohl(msg_size);
+			msg->dataLen = ntohs(msg_size);
 			msg->data = malloc(msg->dataLen);
 			while(r < msg->dataLen && r >= 0) {
 				int ret = recv(c->sockid, msg->data + r, msg->dataLen - r, 0);
@@ -274,12 +275,12 @@ static int handle_read(simple_tcp_dispatcher_state* state, connection* c, YggMes
 
 
 static bool handle_send(connection* c, YggMessage* msg) {
-	uint32_t msg_size = htonl(msg->dataLen);
+	uint16_t msg_size = htons(msg->dataLen);
 	uint16_t proto_id = htons(msg->Proto_id);
 
 	send(c->sockid, &proto_id, sizeof(uint16_t), MSG_NOSIGNAL); //the protocol header
 
-	send(c->sockid, &msg_size, sizeof(uint32_t), MSG_NOSIGNAL); //how big is the message
+	send(c->sockid, &msg_size, sizeof(uint16_t), MSG_NOSIGNAL); //how big is the message
 	int sent = 0;
 	int n;
 	while(sent < msg->dataLen && sent >= 0) {
@@ -307,7 +308,8 @@ static void handle_inbound_reads(simple_tcp_dispatcher_state* state, fd_set* rea
 		if(c->sockid > 0 && FD_ISSET(c->sockid, reads) != 0 && FD_ISSET(c->sockid, excepts) == 0) {
 
 			YggMessage msg;
-			msg.data = NULL;
+			bzero(&msg, sizeof(YggMessage));
+			//msg.data = NULL;
 			int ret = handle_read(state, c, &msg);
 
 			if(ret == 0) {
@@ -324,7 +326,7 @@ static void handle_inbound_reads(simple_tcp_dispatcher_state* state, fd_set* rea
 				ygg_log("TCP_DISPATCHER", "DEBUG", debug_msg);
 #endif
 				deliver(&msg);
-			} else { //TODO: different error
+			} else { //TODO: different error THIS HAPPENDED
 				char error_msg[100];
 				bzero(error_msg, 100);
 				sprintf(error_msg, "error on read from connection %s  %d\n", c->ip.addr, c->ip.port);
@@ -376,6 +378,7 @@ typedef struct _async_read_args {
 typedef struct _async_status {
     IPAddr ip;
     bool read;
+    short proto_id;
     connection_state state;
 }async_status;
 
@@ -392,9 +395,9 @@ static void handle_async_read(async_read_args* args) {
     int r = recv(args->sockid, &proto_id, sizeof(uint16_t), 0);
     if(r == sizeof(uint16_t)) {
         //everything ok
-        uint32_t msg_size;
-        r = recv(args->sockid, &msg_size, sizeof(uint32_t), 0);
-        if(r == sizeof(uint32_t)) {
+        uint16_t msg_size;
+        r = recv(args->sockid, &msg_size, sizeof(uint16_t), 0);
+        if(r == sizeof(uint16_t)) {
             //everything ok
             r = 0;
             msg.header.type = IP;
@@ -405,7 +408,7 @@ static void handle_async_read(async_read_args* args) {
             memcpy(msg.header.src_addr.ip.addr, args->ip.addr, 16);
             msg.header.src_addr.ip.port = args->ip.port;
             msg.Proto_id = ntohs(proto_id);
-            msg.dataLen = ntohl(msg_size);
+            msg.dataLen = ntohs(msg_size);
             msg.data = malloc(msg.dataLen);
             while(r < msg.dataLen && r >= 0) {
                 int ret = recv(args->sockid, msg.data + r, msg.dataLen - r, 0);
@@ -424,7 +427,9 @@ static void handle_async_read(async_read_args* args) {
                 deliver(&msg);
                 status.state = CONNECTED;
             }
-
+#if defined DEBUG | DEBUG_MULTI_DISPATCHER
+            printf("new msg with size: %d to protocol %d\n", msg.dataLen, msg.Proto_id);
+#endif
             YggMessage_freePayload(&msg);
         }
     }
@@ -496,14 +501,16 @@ static void handle_async_send(async_send_args* args) { //this may not be safe...
     status.state = CONNECTED;
     status.ip = args->msg->header.dst_addr.ip;
 
+    status.proto_id = args->msg->Proto_id;
+#if defined DEBUG | DEBUG_MULTI_DISPATCHER
     printf("To send async large message of size: %d  to %s  %d\n", args->msg->dataLen, args->msg->header.dst_addr.ip.addr, args->msg->header.dst_addr.ip.port);
-
-    uint32_t msg_size = htonl(args->msg->dataLen);
+#endif
+    uint16_t msg_size = htons(args->msg->dataLen);
     uint16_t proto_id = htons(args->msg->Proto_id);
 
     send(args->sockid, &proto_id, sizeof(uint16_t), MSG_NOSIGNAL); //the protocol header
 
-    send(args->sockid, &msg_size, sizeof(uint32_t), MSG_NOSIGNAL); //how big is the message
+    send(args->sockid, &msg_size, sizeof(uint16_t), MSG_NOSIGNAL); //how big is the message
     int sent = 0;
     int n;
     while(sent < args->msg->dataLen && sent >= 0) {
@@ -511,6 +518,7 @@ static void handle_async_send(async_send_args* args) { //this may not be safe...
             if (errno == EINTR || errno == EAGAIN)
                 continue;
             perror("Error on async send: ");
+            status.state = ERROR;
             break;
         }
 
@@ -549,19 +557,30 @@ static void handle_async_pipe(simple_tcp_dispatcher_state* state) {
         connection *c = list_find_item(state->inbound, (equal_function) equal_addr, &status.ip);
         if (c) {
             YggMessage* msg;
-            if((msg = next_buffered_msg(c)) != NULL) {
+            if(status.state == ERROR) {
+                //TODO handle_error
+            } else {
+                YggRequest req;
+                YggRequest_init(&req, PROTO_DISPATCH, status.proto_id, REQUEST, ASYNC_MSG_SENT);
+                YggRequest_addPayload(&req, status.ip.addr, 16);
+                YggRequest_addPayload(&req, &status.ip.port, sizeof(unsigned short));
+                deliverRequest(&req);
+                YggRequest_freePayload(&req);
 
-                async_send_args *args = malloc(sizeof(async_send_args));
-                args->msg = msg;
-                args->sockid = c->sockid;
-                args->state = state;
+                if ((msg = next_buffered_msg(c)) != NULL) {
 
-                pthread_t t;
-                pthread_create(&t, NULL, (gen_function) handle_async_send, args);
-                pthread_detach(t);
-            } else
-                c->conn_state = status.state; //CONNECTED
+                    async_send_args *args = malloc(sizeof(async_send_args));
+                    args->msg = msg;
+                    args->sockid = c->sockid;
+                    args->state = state;
+
+                    pthread_t t;
+                    pthread_create(&t, NULL, (gen_function) handle_async_send, args);
+                    pthread_detach(t);
+                } else
+                    c->conn_state = status.state; //CONNECTED
                 //list_add_item_to_head(state->outbound, c);
+            }
         }
     }
 
@@ -701,7 +720,10 @@ static void process_large_msg(simple_tcp_dispatcher_state* state, YggMessage* ms
 
        if(!c) { //Ignore for now
            //SOME error or force otherside to perform connect ?????
-           printf("No connection available to send large message. To destination %s %d\n", msg->header.dst_addr.ip.addr, msg->header.dst_addr.ip.port);
+           char warning_msg[200]; bzero(warning_msg, 200);
+           sprintf(warning_msg, "No connection available to send large message. To destination %s %d\n", msg->header.dst_addr.ip.addr, msg->header.dst_addr.ip.port);
+           ygg_log("DISPATCHER","WARNING", warning_msg);
+           YggMessage_freePayload(msg);
        } else {
            if(c->conn_state == SENDING) {
                buffer_msg(c, msg);
@@ -724,10 +746,20 @@ static void process_large_msg(simple_tcp_dispatcher_state* state, YggMessage* ms
 
 static void process_msg(simple_tcp_dispatcher_state* state, YggMessage* msg) {
 
-    if(msg->dataLen < 1024)
+//    if(msg->header.dst_addr.ip.addr[0] != '1')
+//        printf("wrong destination!\n");
+
+    if(msg->dataLen < state->msg_size_threashold) {
+#if defined DEBUG | DEBUG_MULTI_DISPATCHER
+        printf("=========> small msg for proto %d with size %d to destination %s %d\n", msg->Proto_id, msg->dataLen, msg->header.dst_addr.ip.addr, msg->header.dst_addr.ip.port);
+#endif
         process_small_msg(state, msg);
-    else
+    } else {
+#if defined DEBUG | DEBUG_MULTI_DISPATCHER
+        printf("=========> large msg for proto %d with size %d to destination %s %d\n", msg->Proto_id, msg->dataLen, msg->header.dst_addr.ip.addr, msg->header.dst_addr.ip.port);
+#endif
         process_large_msg(state, msg);
+    }
 
 
 
@@ -920,6 +952,8 @@ proto_def* multi_tcp_socket_dispatcher_init(Channel* ch, void* args) {
 	state->inbound = list_init();
 	state->outbound = list_init();
 
+	state->msg_size_threashold = ((multi_tcp_dispatch_args*)args)->msg_size_threashold;
+
 	pipe(state->events);
 
 	//pthread_mutex_init(&state->in, NULL);
@@ -927,7 +961,7 @@ proto_def* multi_tcp_socket_dispatcher_init(Channel* ch, void* args) {
 
 	proto_def* dispatcher = create_protocol_definition(PROTO_DISPATCH, "multi tcp dispatcher", (void*) state, (Proto_destroy) destroy);
 
-	proto_def_add_produced_events(dispatcher, 3/*4?*/); //conn up, conn down, unable to conn, failed to send? :/
+	proto_def_add_produced_events(dispatcher, 3); //conn up, conn down, unable to conn,
 
 	proto_def_add_protocol_main_loop(dispatcher, simple_tcp_dispatcher_main_loop);
 

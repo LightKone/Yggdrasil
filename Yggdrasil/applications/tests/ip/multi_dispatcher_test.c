@@ -11,7 +11,7 @@
 #include "protocols/ip/membership/xbot.h"
 #include "protocols/ip/utility/oracles/udp_oracle.h"
 
-#include "protocols/ip/dissimination/plumtree.h"
+#include "protocols/ip/dissemination/plumtree.h"
 
 #include "protocols/ip/dispatcher/multi_tcp_socket_dispatcher.h"
 

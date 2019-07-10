@@ -1,17 +1,15 @@
 //
-// Created by Pedro Akos on 2019-06-07.
+// Created by Pedro Akos on 2019-07-01.
 //
 
-#ifndef YGGDRASIL_PLUMTREE_MEM_OPTIMIZED_H
-#define YGGDRASIL_PLUMTREE_MEM_OPTIMIZED_H
+#ifndef YGGDRASIL_COMMON_DISSEMINATION_INTERFACE_H
+#define YGGDRASIL_COMMON_DISSEMINATION_INTERFACE_H
 
+#include <stdlib.h>
+#include <string.h>
 
-#include "plumtree.h"
-
-
-
-#define PLUMTREE_REQUEST_MSG_BODY 78
-
+#define DISSEMINATION_REQUEST 77
+#define MSG_BODY_REQ 99
 
 typedef struct __dissemination_request {
     //void* ptrs are managed by this protocol
@@ -23,13 +21,13 @@ typedef struct __dissemination_request {
     void* body;
 }dissemination_request;
 
-typedef struct __plumtree_request_msg_body_header plumtree_request_msg_body_header;
+typedef struct __dissemination_msg_request {
 
-typedef struct __plumtree_request_msg_body {
+   void* header;
+   dissemination_request* req;
+}dissemination_msg_request;
 
-    plumtree_request_msg_body_header* header;
-    dissemination_request* req;
-}plumtree_request_msg_body;
+dissemination_msg_request* create_dissemination_msg_request(void* dissemination_proto_header);
 
 dissemination_request* dissemination_request_init();
 
@@ -38,7 +36,4 @@ void* dissemination_request_destroy(dissemination_request* req);
 void dissemmination_request_add_to_header(dissemination_request* req, void* item, int item_size);
 void dissemmination_request_add_to_body(dissemination_request* req, void* item, int item_size);
 
-
-proto_def* plumtree_mem_optimized_init(plumtree_args* args);
-
-#endif //YGGDRASIL_PLUMTREE_MEM_OPTIMIZED_H
+#endif //YGGDRASIL_COMMON_DISSEMINATION_INTERFACE_H
