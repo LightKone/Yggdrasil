@@ -57,7 +57,7 @@ Execute the following in each node:
 * `node2` - `yggFileServer 192.168.1.101 9000 192.168.1.100 9000`
 * `node3` - `yggFileServer 192.168.1.102 9000 192.168.1.100 9000`
 
-`node1` should be the first to be started. 
+`node1` should be the first to be started as it will be the bootstrap node in this deployment. 
 
 `node2` and `node3` will connect to `node1`.
 
