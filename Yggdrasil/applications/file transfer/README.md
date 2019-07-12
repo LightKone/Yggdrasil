@@ -45,6 +45,32 @@ The Client will transfer the local file `<path/to/file>` to the process identifi
 
 Upon a successful first transfer, the File Dissemination Server will begin to disseminate the file to the remainder of the system.
 
+### Sample 3 node deployment
+
+Considering you have three nodes in different locations with the following IP address:
+* `node1` - `192.168.1.100`
+* `node2` - `192.168.1.101`
+* `node3` - `192.168.1.102`
+
+Execute the following in each node:
+* `node1` - `yggFileServer 192.168.1.100 9000`
+* `node2` - `yggFileServer 192.168.1.101 9000 192.168.1.100 9000`
+* `node3` - `yggFileServer 192.168.1.102 9000 192.168.1.100 9000`
+
+`node1` should be the first to be started. 
+
+`node2` and `node3` will connect to `node1`.
+
+Use the `yggTransfer [-s <serverAddress>] <path/to/file>` to issue any of the running nodes to begin transferring the file:
+* `yggTransfer -s 192.168.1.101 /home/myuser/largefile.txt`
+
+
+#### Adding more nodes to the system
+Nodes may connect to any already node in the system. If we wanted to add a `node4` - `192.168.1.104` we could do this:
+* `node4` - `yggFileServer 192.168.1.104 9000 192.168.1.102 9000`
+
+
+
 ## Server Architecture
 
 The File Dissemination Server is composed by 3 protocols found in Yggdrasil, an alternative Dispatcher protocol, and a simple command interpreter.
