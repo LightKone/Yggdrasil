@@ -1,20 +1,36 @@
 # Yggdrasil Low Level Library
 
-This Library is used to configure the device so that it can support the desired mode.
 
-In this version only supports the configuration for AdHoc mode in Wireless in Linux based systems.
+This Library supports the Yggdrasil Runtime in configuring the device with the desired communication mode. 
 
-To do this it uses the functions and data types defined in linux/nl80211.h and in the netlink library.
+Yggdrasil now offers 2 modes for communication:
+1. Wireless Ad Hoc
+1. TCP/IP
 
-This project tries to abstract the user (programmer) to the issues of hand configuring the device.
+These communication modes are exposed to the Yggdrasil Runtime as a *channel* abstraction. 
+
+### Wireless Ad Hoc
+In this mode the radio device itself is reconfigured to operate in ad hoc mode. 
+
+To do this we use the functions and data types defined in [linux/nl80211.h](https://github.com/torvalds/linux/blob/master/include/uapi/linux/nl80211.h) and in the [netlink library](https://www.infradead.org/~tgr/libnl/doc/core.html).
+
+This Library tries to abstract the user (programmer) to the issues of hand configuring the device.
 
 The code written in based on the implementation of the iw linux tool. The code can be found in:
-https://github.com/Distrotech/iw
+[https://github.com/Distrotech/iw](https://github.com/Distrotech/iw)
+
+The code that handles this can be found [here](src_wireless).
+
+**NOTE:** In this mode, communication is performed via message exchange directly at the MAC layer (Layer 2 of the OSI stack).
+
+### TCP/IP
+
+In this mode a simple listening socket is configure through where it is possible to accept incoming connections.
 
 
 ### Demos
 
-This project offers 5 demos to test the basic functionalities of the project.
+We offer 5 demos to test the basic functionalities of this Library over Wireless.
 These demos are Sender and Receiver applications. In order to test connectivity they should be used in pairs.
 
 We provide the following demos:
@@ -31,9 +47,3 @@ The Receiver simple receives the message and prints it.
 
 The SenderWithReply sends a message and waits for two seconds for the reply.
 The ReceiverWithReply receives a message and sends a reply to the sender.
-
-
-### Change log:
-
-Added support for Ip networks by extending the API.
-API now allows to create TCP/IP channels (these only contain the listen socket).

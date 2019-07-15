@@ -40,7 +40,7 @@ Yggdrasil Supports 4 types of events:
 * *Notifications* - Interactions between 1:N protocols in a single process.
 * *Requests/Replies* - Interactions between 1:1 protocols in a single process.
 
-The usage of these events in further detailed [here](Yggdrasil/).
+The usage of these events is further detailed [here](Yggdrasil/).
 
 
 ## Project Structure
