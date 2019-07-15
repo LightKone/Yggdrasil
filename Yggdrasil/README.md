@@ -1,258 +1,290 @@
 # Yggdrasil
 
-Yggdrasil is used to develop protocols that run in wireless environments.
-This project is build upon Yggdrasil-LowLevelLib which is used to configure and manipulate the network devices.
-
-All of the protocols defined in the project are tied together by the Yggdrasil runtime (ygg_runtime).
-The runtime initializes 3 protocols by default, the dispatcher protocol, the timer protocol, and the protocol executor.
-
-1. Dispatcher protocol : This will be used to send and receive messages from the network.
-2. Timer protocol : This will manage all timers (either unique or periodic) set within the framework.
-3. Protocol executor : This will manage protocols that a share a simple execution thread.
 
 
-The runtime registers each protocol and handles the interaction between them.
-These interactions are done by blocking queues. Each protocol has associated to it a queue which it uses to receive events by other protocols.
+## Yggdrasil Runtime & Abstractions
 
-The elements present in these queues are queue_t_elem which can be of 4 different types:
-YggMessage, YggTimer, YggEvent, YggRequest.
-
-A definition of these structures can be found in:
-```
-./core/proto_data_struct.h
-```
-
-The queue have priorities for each element type, which is defined by the order described in enum queue_t_elemeent_type_ in:
-```
-./core/utils/queue_elem.h
-```
-
-The current priority is:
-
-1. YggTimer
-2. YggEvent
-3. YggMessage
-4. YggRequest
+The Yggdrasil Runtime provides the functionalities for protocols and applications to be able to execute cooperatively. This cooperation emerges from the processing of events within Yggdrasil.
 
 
-### Configuring an application
+### Yggdrasil Event Types
 
-In Yggdrasil, an application can be composed of three different kinds of components:
+* `YggMessage` - Network Messages.
+* `YggTimer` - Timers.
+* `YggEvent` - Notifications.
+* `YggRequest` - Requests/Replies.
 
-1. Yggdrasil protocols
-2. User defined protocols
-3. Application components
+More details can be found in their definition [here](./core/proto_data_struct.h).
 
-Yggdrasil protocols are protocols provided by yggdrasil itself. As of this version only the dispatcher, timer, protocol executor, and the topology manager protocol (defined in ./protocols/utility) are defined as being Yggdrasil Protocols.
-Yggdrasil protocols are designed to provide the most basic and fundamental functionalities to any applications.
+Events have different priorities:
+1. `YggTimer`
+2. `YggEvent`
+3. `YggMessage`
+4. `YggRequest`
 
-User defined protocols are protocols that provide specific functionalities to applications. These are the protocols that one should develop with Yggdrasil. As of now, Yggdrasil provides a variety of user defined protocols that can be found in the directory protocols.
+Can be changed by redefining the ordering of the [enum queue_t_element_type](core/utils/queue_elem.h).
 
-Application components are components that are not necessarily protocols, but are essential parts of applications.
+### Yggdrasil Event Routing
 
-To incorporate Yggdrasil within a main application, the runtime must be configured.
+Protocols and applications must be registered in the Yggdrasil Runtime for events to pass from one protocol to another.
 
-First the runtime should be initialized by calling the following function:
+This is achieved by 2 elements in Yggdrasil:
+* Event queues - Upon registration the Yggdrasil Runtime will provide a  `queue_t` data structure, through where events from other protocols can be consumed.
+* Protocol unique number - Protocols and Applications in Yggdrasil have a unique numeric to identify them. This enables the Runtime to route events through different protocols (events are tagged with protocol's unique numeric identifier). 
 
-```c
-/**
- * Initialize the runtime to hold the protocols the applications need to run
- * @param ntconf The configuration of the environment
- * @return SUCCESS if successful; FAILED otherwise
- */
-int ygg_runtime_init(NetworkConfig* ntconf);
-```
+The Runtime provides functions to deliver each event type to their correct destination:
 
-Then, each yggdrasil protocol, user defined protocol, and application component that is necessary for the operation of the desired application should be registered within the runtime. This can be achieved with the following functions:
+* `dispatch(YggMessage* msg)` - Send a message to the Network.
+* `directDispatch(YggMessage* msg)` - Sent a message to directly to the the Dispatcher protocol to be sent to the Network.
+* `deliver(YggMessage* msg)` - Deliver a Message to the protocol identified by the protocol identifier in the Message header.
+* `filterAndDeliver(YggMessage* msg)` - Verify if the destination address is valid and then deliver the Message. 
+* `setupTimer(YggTimer* timer)` - Setup a Timer event.
+* `cancelTimer(YggTimer* timer)` - Cancel a Timer event.
+* `deliverTimer(YggTimer* timer)` - Deliver the Timer event to the protocol identified by the protocol identifier in the Timer header.
+* `deliverEvent(YggEvent* event)` - Deliver a Notification event to all interested parties.
+* `deliverRequest(YggRequest* req)` - Deliver a Request event to the protocol identified by the protocol identifier in the Request header.
+* `deliverReply(YggRequest* res)` - Deliver a Reply event to the protocol identified by the protocol identifier in the Reply header.
+
+More information on these functions can be found in their definition [here](core/ygg_runtime.h).
+
+
+### Implementing Protocols
+
+Protocols in Yggdrasil are defined and implement in 3 parts.
+
+A protocol contains a *state*, *event handlers*, and an *initialization function*.
+
+#### State:
+The state of a protocol in Yggdrasil is defined as *C* data structure:
 
 ```c
-/**
- * Register a yggdrasil protocol in the runtime
- * @param proto_id The yggdrasil protocol ID
- * @param protocol_init_function The yggdrasil protocol initialization function
- * @param proto_args The yggdrasil protocol specific parameters
- * @return SUCCESS if all checks out, FAILED otherwise
- */
-short registerYggProtocol(short proto_id, Proto_init protocol_init_function, void* proto_args);
-
-/**
- * Register a user defined protocol in the runtime
- * @param proto_id The user defined protocol ID
- * @param protocol_init_function The user defined protocol initialization function
- * @param proto_args The user defined protocol specific parameters
- * @return SUCCESS if all checks out, FAILED otherwise
- */
-short registerProtocol(short proto_id, Proto_init protocol_init_function, void* proto_args);
-
-/**
- * Register an application component in the runtime
- * @param application_definition The application component definition
- * @return The application's event queue
- */
-queue_t* registerApp(app_def* application_definition);
+type struct state_ {
+    short protocol_id;
+    (... protocol maintained state) 
+} state
 ```
 
-Once everything is set up, one should start the runtime, starting all the registered protocols.
+The variable `protocol_id` should be maintained in the state to help initialize events produced by the protocol.
+
+The rest of the variables in the state are protocol dependent. 
+
+#### Event Handlers:
+
+Protocol need to process events. Yggdrasil provides template functions for this purpose:
 
 ```c
-/**
- * Start all of the registered protocols
- * @return This operations always succeeds, if there are errors they will be logged for later analysis
- */
-int ygg_runtime_start();
-```
+short process_msg(YggMessage* msg, void* state) {
+...
+}
 
+short process_timer(YggTimer* timer, void* state) {
+...
+}
 
-### Designing Protocols
+short process_notification(YggEvent* event, void* state) {
+...
+}
 
-In Yggdrasil protocols are event driven. Events are consumed from the protocol's queue, and pushed to other protocols' queues.
-
-Protocols can be defined in two ways:
-
-1. Following an independent execution model:
-	* In this the protocol is configured by the runtime to run on an independent execution thread
-2. Following a shared execution model:
-	* In this the protocol is configured by the runtime to run within the context of the execution of the protocol executor.
-
-To configure the protocol to run in one model or the other, protocols are required to have a an initialization function, where they create a protocol definition. This definition will contain all the necessary information that is required for the runtime to configure and execute the protocol correctly.
-
-As an example:
-
-```c
-proto_def* protocol_init(void* args) {
-	protocol_state* state = malloc(sizeof(protocol_state)); //the protocol's state
-	... //initialize the protocol's state
-
-	proto_def* protocol_definition = create_protocol_definition(protocol_id, protocol_name, state, protocol_destroy_function); //create a protocol definition
-
-	proto_def_add_produced_events(protocol_definition, number_of_produced_notifications);
-	proto_def_add_consumed_event(protocol_definition, producer_protocol_id, notification_id);
-	if(shared_execution_model) {
-		proto_def_add_msg_handler(protocol_definition, process_msg);
-		proto_def_add_timer_handler(protocol_definition, process_timer);
-		proto_def_add_event_handler(protocol_definition, process_event);
-		proto_def_add_request_handler(protocol_definition, process_request);
-	} else
-		proto_def_add_protocol_main_loop(protocol_definition, protocol_main_loop);
-
-	...//other initializations required
-
-	return protocol_definition
+short process_request(YggRequest* request, void* state) {
+...
 }
 ```
 
-Handlers are used for the shared execution model, the protocol's main loop is used for the independent execution model.
-More examples can be found in the provided implemented protocols.
+These functions always receive 2 arguments:
+1. The event data structure they process.
+1. The state of the protocol as a generic pointer.
 
-### Useful functions
-
-To manage the interactions between protocols, the runtime provides the following functions:
+Alternatively, protocols can also resort to a main-loop function to guide the processing of events:
 
 ```c
-
-/**
- * Send a message to the network
- * @param msg The message to be sent
- * @return This operation always succeeds
- */
-int dispatch(YggMessage* msg); //dispatch a message to the network
-
-/**
- * Send a message to the network (sending it directly to the dispatcher queue)
- * This functions should only be used by control processes
- * @param msg The message to be sent
- * @return This operation always succeeds
- */
-int directDispatch(YggMessage* msg);
-
-/**
- * Setup a timer in timer protocol
- * @param timer The timer to be set
- * @return This operation always succeeds
- */
-int setupTimer(YggTimer* timer);
-
-/**
- * Cancel an existing timer.
- * @param timer The timer to be cancelled
- * @return This operation always succeeds
- */
-int cancelTimer(YggTimer* timer);
-
-/**
- * Deliver a message to the protocol identified in the message
- * @param msg The message to be delivered
- * @return This operation always succeeds
- */
-int deliver(YggMessage* msg);
-
-/**
- * Verifies if the message destination is the process by verifying the destination's mac address,
- * If the mac address belongs to the process or it is the broadcast address, the message is delivered
- * to the protocol identified in the message
- * @param msg The message to be delivered
- * @return This operation always succeeds
- */
-int filterAndDeliver(YggMessage* msg);
-
-/**
- * Deliver a timer to the protocol identified in the timer
- * @param timer The timer to be delivered
- * @return This operation always succeeds
- */
-int deliverTimer(YggTimer* timer);
-
-/**
- * Deliver an event to all interested protocols in the event
- * @param event The event to be delivered
- * @return This operation always succeeds
- */
-int deliverEvent(YggEvent* event);
-
-/**
- * Deliver a request to a protocol
- * @param req The request to be delivered
- * @return If the YggRequest is a request returns SUCCESS, if not returns FAILED
- */
-int deliverRequest(YggRequest* req);
-
-/**
- * Deliver a reply to a protocol
- * @param res The reply to be delivered
- * @return If the YggRequest is a request returns SUCCESS, if not returns FAILED
- */
-int deliverReply(YggRequest* res);
+void protocol_main_loop(main_loop_args* args) {
+    queue_t* inBox = args->inBox;
+    void* state = args->state;
+    
+    while(1) { //loop forever consuming events from the queue and processing them accordingly
+        queue_t_elem el;
+        queue_pop(inBox, &el); // this will block until an event is present in the queue
+        
+        switch(el.type) { //switch the type of element retrieved from the queue
+            case YGG_MESSAGE:
+                process_msg(&el.data.msg, state);
+                break;
+            case YGG_TIMER:
+                process_timer(&el.data.timer, state);
+                break;
+            case YGG_EVENT:
+                process_notification(&el.data.event, state);
+                break;
+            case YGG_REQUEST:
+                process_request(&el.data.request, state);
+                break;
+        }
+        
+        free_elem_payload(&el); //Free any allocated memory in the events
+    }
+}
 ```
 
-### Change log:
+> Developers can use their defined type for the state variable received in these functions to avoid having to cast the generic pointer.
+>
+> This will lead the C compiler to produce warning however. 
 
-There are two types of Network Configurations:
-1. WirelessNetwork - defines a network configuration for wireless ad hoc.
-2. IpNetwork - defines a network configuration for tcp/ip (udp is not yet implemented).
+The two modes of defining event handling in a protocol ultimately define how the protocol will be executed at runtime. 
 
-The yggdrasil runtime is responsible for initializing the dispatcher protocol accordingly to the given network configuration.
+This property is defined upon protocol initialization.
 
-**Simple TCP dispatcher**
-* Opens connections as needed by dispatched messages
-* Provides three notifications - connection up, connection down, unable to connected
-* Provides one request - close connection
-* Due to simplicity: connections are half-duplex (each pair has two connections: one to receive, one to send)
+#### Initialization:
+
+The initialization function is responsible for initializing the protocol's state and to provide configuration information for the Yggdrasil Runtime.
+
+The configuration information is stored in a special data structure `proto_def` that the function must return.
+
+```c
+proto_def* protocol_init(void* args) {
+    state* st = malloc(sizeof(state)); //Allocate memory to hold the state
+    st->protocol_id = PROTO_ID; //PROTO_ID is a constant defined in the protocol header file. Alternatively, this could be passed as argument.
+    
+    //Initialize the rest of the state
+    ...
+    
+    
+    //Create a protocol definition to provide protocol configuration information
+    proto_def* proto = create_protocol_definition(PROTO_ID /* The protocol's numeric identifier */, "My protocol" /* The protocol's name */, st /* the protocol's state */, to_destroy /* A function to free the protocol's resources (may be NULL)*/ );
+    
+    
+    //Set the protocol to execute in an independent execution thread
+    proto_def_add_protocol_main_loop(proto, (Proto_main_loop) protocol_main_loop);
+    
+    //OR
+    
+    //Set the protocol to execute in an shared execution thread
+    proto_def_add_msg_handler(proto, (YggMessage_handler) process_msg);
+    proto_def_add_timer_handler(proto, (YggTimer_handler) process_timer);
+    proto_def_add_event_handler(proto, (YggEvent_handler) process_notification);
+    proto_def_add_request_handler(proto, (YggRequest_handler) process_request);
+    
+
+    //ADD how many notifications does the protocol produce
+    proto_def_add_produced_events(proto, number_of_produced_notifications);
+    
+    //ADD which notifications does the protocol consumes
+    proto_def_add_consumed_event(proto, producer_protocol_id, notification_id);
+    proto_def_add_consumed_event(proto, producer_protocol_id, notification_id2);
+    proto_def_add_consumed_event(proto, producer_protocol_id2, notification_id);
+    
+    
+    //Perform other initialization actions (e.g., setup timers)
+    ...  
+
+    //Return the definition, for the Yggdrasil Runtime to process
+    return proto;
+}
+```
+> If both modes of execution are defined in the protocol definition, Yggdrasil will default to execute the protocol in an independent thread.
+
+### Building Applications
+
+We define as application, the piece of code that contains the main function.
+
+Applications must first configure the Yggdrasil Runtime by providing a network configuration.
+
+This can be either for IP or Wireless networks.
+
+The Application then registers the protocols it will use, and register itself in the Runtime to obtain an event queue similarly to a protocol.
+
+After all configurations are perform, the Application signals the Runtime to begin the execution of the protocols.
+
+The  following piece of code exemplifies this: 
+
+```c
+int main(int argc, char* argv[]) {
+    
+    //Use traditional IP Networking
+    NetworkConfig* ntconf = defineIpNetworkConfig("127.0.0.1"/*IP address of the process*/, 9000/*listing port*/, TCP/*TCP or UDP communication*/, 10/*pending accepts*/, 0/*Other options*/);
+
+    //OR
+    
+    //Use wireless ad hoc Networking
+    NetworkConfig* ntconf = defineWirelessNetworkConfig("AdHoc"/*Wireless Mode*/, 0/*Radio frequency 0 is default to 2412*/, 5/*Number of wireless scans*/, 0/*mandatory network name*/, "ledge"/*the network name*/, YGG_filter/*kernel filter to use*/);
 
 
-Protocols for Ip networks have been added. These include:
-1. Membership - HyParView.
-2. Membership - Xbot.
-3. Dissemination - Plumtree.
-4. Utility - UDP oracle (performs ping-pong between two peers to measure network latency).
 
-The project has been restructured:
-* Protocols for wireless adhoc networks are under *protocols/wireless/*
-* Protocols for ip networks are under *protocols/ip/*
+    //Initialize the Yggdrasil Runtime with the given Network configuration
+    ygg_runtime_init(ntconf);
+    
+    
+    //Register protocol
+    registerYggProtocol(PROTO_ID /*the protocol numeric identifier*/, protocol_init /*the protocol initialization function*/, protocol_args /*the protocol arguments*/);
+    
+    //register other protocols similarly
+    ...
+    
+    
+    //Register the Application
+    short myId = 400;
+    app_def* myapp = create_application_definition(myId, "MyApp");
+    
+    app_def_add_consumed_events(myapp, PROTO_ID, notification_id1);
+    
+    queue_t* inBox = registerApp(myapp);
+	
+    
+    //Start Yggdrasil Runtime:
+    ygg_runtime_start();
+    
+    
+    //Execute your application code
+    
+    while(1) {
+        queue_elem_t el;
+        queue_pop(inBox, &el);
+        switch(el.type) {
+        ... // process events and run application code
+        }
+    }
 
-**YggMessages** have also changed:
-* Header has been changed to allow *IP:PORT* or *MAC Address*.
-* Now contain a dynamic payload instead of a static one.
-* More functions to manipulate the data structure correctly (similar to the ones provided to other event types).
+}
 
 
-Redefined `comparator_function` to `equal_function` and added a *true* definition of `comparator_function` (compares if two given elements are larger, equal, or smaller).
+```
+> Protocols for each network are still incompatible. If you define a IP network, then you should use protocol that operate over IP networks. The same goes to Wireless.
+> 
+> This is because, messages for IP networks will use IP headers, whilst messages for Wireless will use MAC headers. The default Dispatcher protocol will go into an undefined state.
+>
+> UDP is not supported yet.
+
+## Structure
+
+In the following directories you may find:
+
+* application_components - contains application components to be added to an application.
+* applications - contains demo and test applications for both ip and wireless.
+* core - contains the code for the Yggdrasil Runtime.
+* interfaces - contains common interfaces for interactions between protocols
+* protocols - contains distributed protocols for both ip and wireless.
+* utils - contains other utilities that might be helpful (e.g., hash functions, bloom filters).
+
+> Application components are defined as generic modules for application to deal with application dependent external behaviour (e.g., an interactive terminal; interaction with a non-Yggdrasil Service).
+
+For simple examples on protocols and applications please find them here:
+   * [simple wireless discovery protocol](protocols/wireless/discovery/simple_discovery.c)
+   * [simple wireless discovery test application](applications/tests/wireless/simple_discovery_test.c)
+
+> As of now, we do not have simple examples for protocols and applications in traditional IP networks.
+
+Click the [link](applications/file%20transfer) to check an application for IP networks fully built using Yggdrasil.
+
+## Next Steps:
+- [ ] Add an additional header to the `YggMessage` stating its type.
+- [ ] Protocol Numeric Identifiers with semantics.
+- [ ] Add UPD communication *Channel*.
+- [ ] Coexisting communication *Channels*.
+- [ ] Allow different kernel filters in Messages (in low-level lib).
+- [ ] Apply Patch for low-level receive for wireless.
+- [ ] Uniform Interfaces for Protocol interactions.
+- [ ] Coexisting IP and Wireless protocols.
+
+In the meantime, we will also continue to improve and add more protocols.
+
+This branch will eventually be merged with `master`, when stable.   
+
