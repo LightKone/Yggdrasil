@@ -58,7 +58,7 @@ A protocol contains a *state*, *event handlers*, and an *initialization function
 The state of a protocol in Yggdrasil is defined as *C* data structure:
 
 ```c
-type struct state_ {
+typedef struct state_ {
     short protocol_id;
     (... protocol maintained state) 
 } state
