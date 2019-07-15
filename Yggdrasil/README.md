@@ -274,6 +274,10 @@ For simple examples on protocols and applications please find them here:
 
 Click the [link](applications/file%20transfer) to check an application for IP networks fully built using Yggdrasil.
 
+Please find protocols for IP Networks [here](protocols/ip).
+
+Please find protocols for Wireless Ad Hoc Networks [here](protocols/wireless).
+
 ## Next Steps:
 - [ ] Add an additional header to the `YggMessage` stating its type.
 - [ ] Protocol Numeric Identifiers with semantics.
