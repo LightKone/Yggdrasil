@@ -253,6 +253,87 @@ int main(int argc, char* argv[]) {
 >
 > UDP is not supported yet.
 
+## Additional Features
+
+Yggdrasil provides additional features that have proven to be useful:
+
+### Changing the default Dispatcher Protocol
+
+Yggdrasil allows to change the dispatcher protocol that an application uses.
+
+For this we provide the following function API that should be called when registering the protocols that the application will use.
+
+`overrideDispatcherProtocol(my_dispatcher_init, my_dispatcher_args)`
+
+### Piggybacking Messages
+
+Yggdrasil allows a protocol *A* to intercept the queue of another protocol *B*.
+
+By intercepting a queue, all event destined to protocol *B* will be instead delivered to protocol *A*.
+
+This also means that protocol *A* will be responsible to deliver the events back to protocol *B*.
+
+
+
+
+
+To request a queue, a protocol must request this at its initialization function:
+```c
+proto_def* proto_init(void* args) {
+    
+    my_proto_state* state = malloc(sizeof(my_proto_state));
+    state->proto_id = MY_PROTO_ID;
+    
+    //Request the Runtime to intercept the queue
+    state->intercepted_queue = interceptProtocolQueue(PROTO_DISPATCH/*The protocol id to be intercepted*/, state->proto_id /*The protocol id intercepting*/);
+    
+    ...
+}
+```
+
+Yggdrasil further provides functions to manipulate piggybacked messages:
+
+* `pushPayload(YggMessage* msg, char* data_to_piggyback, unsigned short size_of_the_data, short proto_id , WLANAddr* mac_address_of_new_destination)` 
+* `popPayload(YggMessage* msg, char* to_read_piggybacked_data, unsigned short size_of_the_data)`
+
+
+Push will write the contents of the piggybacked data into the beginning of the message, update the headers, and store the old headers in the payload.
+
+Pop will perform the inverse operation and restore the original message with its headers.  
+
+```c
+short process_msg(YggMessage* msg, proto_state* state) {
+    
+    
+    if(msg->Proto_id != state->my_proto_id) { //Message is coming from another protocol
+        
+        my_proto_info* info; //information to be piggybacked
+        
+        //Add my information to the message
+        pushPayload(msg, (char*) info, sizeof(my_proto_info), state->proto_id, BROADCAST_ADDR);
+        
+        //push the message to the intercepted queue
+        queue_t_elem e;
+        e.data.msg = *msg;
+        queue_push(state->intercepted_queue, &e);
+        
+    } else { //Message is coming from the network
+        
+        my_proto_info* info; //information that was piggybacked
+        
+        //retrieve my information from the message
+        popPayload(msg, (char*) info, sizeof(my_proto_info));
+        
+        //deliver the message to upper layer
+        filterAndDeliver(msg);
+        
+    }
+    
+}
+```
+
+> This feature is yet only available for wireless messages
+
 ## Structure
 
 In the following directories you may find:
